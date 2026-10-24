@@ -90,3 +90,24 @@ export const signIn = async (req, res) => {
         });
     }
 }
+export const signOut = async (req, res) => {
+    try {
+        // lấy refreshtoken từ cookie
+        const token = req.cookies?.refreshToken;
+        if (token) {
+            // xóa refresh token trong session
+            await Session.deleteOne({ refreshToken: token });
+            // xóa trong cookie
+            res.clearCookie("refreshToken");
+        }
+        return res.sendStatus(204);
+
+
+    } catch (error) {
+        console.error("Lỗi signout:", error);
+
+        return res.status(500).json({
+            message: "Lỗi hệ thống"
+        });
+    }
+}

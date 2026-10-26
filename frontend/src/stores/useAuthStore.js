@@ -7,6 +7,10 @@ export const useAuthStore = create((set, get) => ({
     user: null,
     loading: false,
 
+    setAccessToken: (accessToken) => {
+        set({ accessToken })
+    }
+    ,
     clearState: () => {
         set({ accessToken: null, user: null, loading: false })
     },
@@ -20,7 +24,7 @@ export const useAuthStore = create((set, get) => ({
             toast.success("Đăng ký thành công.")
         } catch (error) {
             console.error(error);
-            toast.error('Đăng ký không thành công');
+            throw error;
         } finally {
             set({ loading: false })
         }
@@ -30,9 +34,13 @@ export const useAuthStore = create((set, get) => ({
         try {
             set({ loading: true })
 
-            const accessToken = await authService.signIn(email, password);
+            const data = await authService.signIn(email, password);
+            const accessToken = data.accessToken;
 
-            set({ accessToken });
+            get().setAccessToken(accessToken);
+
+            await get().fetchMe();
+
             toast.success("Đăng nhập thành công")
         } catch (error) {
             console.error(error);
@@ -51,6 +59,52 @@ export const useAuthStore = create((set, get) => ({
             console.error(error);
             toast.error("Lỗi logout");
         }
-    }
+    },
+    fetchMe: async () => {
+        try {
+            set({ loading: true });
+            const user = await authService.fetchMe();
+            set({ user });
+        } catch (error) {
+            console.error(
+                "FetchMe error:",
+                error.response?.status,
+                error.response?.data
+            );
+
+            set({ user: null });
+
+            toast.error("Không lấy được thông tin người dùng.");
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    refresh: async () => {
+        try {
+            const { user, fetchMe, clearState } = get();
+            set({ loading: true });
+
+            const { accessToken } = await authService.refreshToken();
+
+            get().setAccessToken(accessToken);
+
+            if (!user) {
+                await fetchMe(); // Gọi fetchMe, interceptor sẽ tự gắn token
+            }
+        } catch (error) {
+            console.error("Refresh error:", error);
+            // Gọi clearState nếu có, nếu không thì set thủ công
+            const { clearState } = get();
+            if (typeof clearState === 'function') {
+                clearState();
+            } else {
+                set({ accessToken: null, user: null });
+            }
+        } finally {
+            set({ loading: false });
+        }
+    },
+
 
 }))

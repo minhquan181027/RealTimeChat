@@ -5,6 +5,7 @@ import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import ChatAppPage from './pages/ChatAppPage'
 import { Toaster } from 'sonner'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
 
@@ -18,7 +19,9 @@ function App() {
           <Route path='/signup' element={<SignUpPage />}></Route>
 
           {/* protected routes */}
-          <Route path='/' element={<ChatAppPage />} ></Route>
+          <Route element={<ProtectedRoute />}>
+            <Route path='/' element={<ChatAppPage />} ></Route>
+          </Route>
 
         </Routes>
 

@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ export function SignupForm({ className, ...props }) {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(signUpSchema),
@@ -34,13 +36,24 @@ export function SignupForm({ className, ...props }) {
 
 
   const onSubmit = async (data) => {
-    console.log("Dữ liệu đăng ký:", data);
-    // TODO: Gọi API đăng ký backend tại đây
     const { firstname, lastname, username, email, password } = data;
-    // gọi backend để signup
-    await signUp(username, password, email, firstname, lastname);
+    try {
+      // gọi backend để signup
+      await signUp(username, password, email, firstname, lastname);
 
-    navigate("/signin");
+      navigate("/signin");
+    } catch (error) {
+      const { field, message } = error.response?.data ?? {};
+
+      if (field && message) {
+        setError(field, {
+          type: "server",
+          message,
+        });
+      } else {
+        toast.error(message || "Đăng ký không thành công");
+      }
+    }
 
   };
 

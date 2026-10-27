@@ -61,7 +61,7 @@ export const signIn = async (req, res) => {
         const accessToken = jwt.sign(
             { userId: user._id },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: '10s' }
+            { expiresIn: '5s' }
         );
 
         // Tạo refresh token 

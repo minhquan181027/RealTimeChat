@@ -17,8 +17,9 @@ app.use(cookieParser());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 //public routes
 app.use('/api/auth', authRoute);
-app.use(protectedRoute);
-app.use('/api/user', userRoute);
+
+
+app.use('/api/user', protectedRoute, userRoute);
 
 //private routes
 

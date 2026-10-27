@@ -25,9 +25,10 @@ api.interceptors.response.use((res) => res, async (error) => {
         originalRequest.url.includes("/auth/refresh")) {
         return Promise.reject(error);
     }
-    if (error.response?.status === 403) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
         try {
-            const res = await api.post("/auth/refresh", { withCredentials: true })
+            const res = await api.post("/auth/refresh", {}, { withCredentials: true })
             const newAccessToken = res.data.accessToken;
             useAuthStore.getState().setAccessToken(newAccessToken);
 

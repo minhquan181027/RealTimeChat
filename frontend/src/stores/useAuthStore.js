@@ -50,6 +50,26 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
+    googleLogin: async (credential) => {
+        try {
+            set({ loading: true })
+
+            const data = await authService.googleLogin(credential);
+            const accessToken = data.accessToken;
+
+            get().setAccessToken(accessToken);
+
+            await get().fetchMe();
+
+            toast.success("Đăng nhập thành công")
+        } catch (error) {
+            console.error(error);
+            toast.error('Đăng nhập không thành công');
+        } finally {
+            set({ loading: false })
+        }
+    },
+
     signOut: async () => {
         try {
             get().clearState();

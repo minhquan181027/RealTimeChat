@@ -19,6 +19,12 @@ export const authService = {
 
         return res.data; //data là accesstoken
     },
+
+    googleLogin: async (credential) => {
+        const res = await api.post("/auth/google", { credential });
+        return res.data;
+    },
+
     signOut: async () => {
         return api.post('/auth/signout', {}, { withCredentials: true });
     },

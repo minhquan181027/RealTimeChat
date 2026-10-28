@@ -1,17 +1,22 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: true,
+        required: function () {
+            return !this.googleId;
+        },
         unique: true,
         trim: true,
         lowercase: true
     },
     hashedPassword: {
         type: String,
-        required: true,
-
+        required: function () {
+            return !this.googleId;
+        },
+        select: false
     },
     email: {
         type: String,
@@ -20,6 +25,13 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        default: null
+    },
+
     displayName: {
         type: String,
         required: true,

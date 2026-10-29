@@ -44,7 +44,8 @@ export const useAuthStore = create((set, get) => ({
             toast.success("Đăng nhập thành công")
         } catch (error) {
             console.error(error);
-            toast.error('Đăng nhập không thành công');
+
+            throw error;
         } finally {
             set({ loading: false })
         }
@@ -64,7 +65,7 @@ export const useAuthStore = create((set, get) => ({
             toast.success("Đăng nhập thành công")
         } catch (error) {
             console.error(error);
-            toast.error('Đăng nhập không thành công');
+            throw error;
         } finally {
             set({ loading: false })
         }

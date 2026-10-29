@@ -11,11 +11,10 @@ export const authService = {
     },
 
     signIn: async (email, password) => {
+
         const res = await api.post("/auth/signin", {
             email, password
-        });
-
-        // console.log("SignIn response:", res.data);
+        }, { withCredentials: true });
 
         return res.data; //data là accesstoken
     },

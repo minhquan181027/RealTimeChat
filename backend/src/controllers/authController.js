@@ -50,7 +50,8 @@ export const signIn = async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(409).json({ message: "Vui lòng nhập email và password" });
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select("+hashedPassword");
+
         if (!user) {
             return res.status(401).json({ message: "Email hoặc mật khẩu chưa chính xác" });
         }

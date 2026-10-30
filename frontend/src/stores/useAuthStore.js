@@ -127,5 +127,45 @@ export const useAuthStore = create((set, get) => ({
         }
     },
 
+    // forgot password
+
+    forgotPassword: async (email) => {
+        try {
+            set({ loading: true });
+            await authService.forgotPassword(email);
+        } catch (error) {
+            console.error(error);
+            throw error;
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    // Trong useAuthStore.js
+    verifyOtp: async (email, otp) => {
+        try {
+            set({ loading: true });
+            // Trả về data để lấy resetToken
+            const data = await authService.verifyOtp(email, otp);
+            return data;
+        } catch (error) {
+            console.error(error);
+            throw error;
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    resetPassword: async (email, resetToken, newPassword) => { // Đổi otp thành resetToken
+        try {
+            set({ loading: true });
+            await authService.resetPassword(email, resetToken, newPassword);
+        } catch (error) {
+            console.error(error);
+            throw error;
+        } finally {
+            set({ loading: false });
+        }
+    },
 
 }))

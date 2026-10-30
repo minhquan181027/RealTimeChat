@@ -36,5 +36,22 @@ export const authService = {
     refreshToken: async () => {
         const res = await api.post("auth/refresh", {}, { withCredentials: true });
         return res.data;
+    },
+
+    // Quên mật khẩu
+    forgotPassword: async (email) => {
+        const res = await api.post("/auth/forgot-password", { email });
+        return res.data;
+    },
+
+    verifyOtp: async (email, otp) => {
+        const res = await api.post("/auth/verify-otp", { email, otp });
+        return res.data;
+    },
+
+    resetPassword: async (email, resetToken, newPassword) => {
+        const res = await api.post("/auth/reset-password", { email, resetToken, newPassword });
+        return res.data;
     }
+
 }

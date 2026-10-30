@@ -6,6 +6,7 @@ import SignUpPage from './pages/SignUpPage'
 import ChatAppPage from './pages/ChatAppPage'
 import { Toaster } from 'sonner'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import ForgotPass from './pages/ForgotPass'
 
 function App() {
 
@@ -17,6 +18,7 @@ function App() {
           {/* public routes */}
           <Route path='/signin' element={<SignInPage />}></Route>
           <Route path='/signup' element={<SignUpPage />}></Route>
+          <Route path='/forgot-password' element={<ForgotPass />}></Route>
 
           {/* protected routes */}
           <Route element={<ProtectedRoute />}>

@@ -13,9 +13,7 @@ const userSchema = new mongoose.Schema({
     },
     hashedPassword: {
         type: String,
-        required: function () {
-            return !this.googleId;
-        },
+        default: null,
         select: false
     },
     email: {
@@ -29,7 +27,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
         sparse: true,
-        default: null
     },
 
     displayName: {
@@ -53,6 +50,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         sparse: true
     },
+
 },
     {
         timestamps: true,

@@ -3,6 +3,9 @@ import dotenv from 'dotenv'
 import { connectDB } from './libs/db.js';
 import authRoute from './routes/authRoute.js'
 import userRoute from './routes/userRoute.js'
+import friendRoute from './routes/friendRoute.js'
+import messageRoute from './routes/messageRoute.js'
+import conversationRoute from './routes/conversationRoute.js'
 import cookieParser from 'cookie-parser'
 import { protectedRoute } from './middlewares/authMiddleware.js';
 import cors from 'cors';
@@ -22,9 +25,12 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use('/api/auth', authRoute);
 
 
-app.use('/api/user', protectedRoute, userRoute);
-
 //private routes
+app.use(protectedRoute);
+app.use('/api/user', userRoute);
+app.use('/api/friend', friendRoute);
+app.use('/api/message', messageRoute);
+app.use('/api/conversation', conversationRoute);
 
 connectDB().then(() => {
     app.listen(PORT, () => {

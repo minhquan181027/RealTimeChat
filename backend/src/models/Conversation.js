@@ -14,7 +14,7 @@ const participantSchema = new mongoose.Schema({
     _id: false
 });
 
-const groupSchema = new Mongoose.Schema({
+const groupSchema = new mongoose.Schema({
     name: {
         type: String,
         trim: true
@@ -28,7 +28,7 @@ const groupSchema = new Mongoose.Schema({
         _id: false,
     })
 
-const lastMessageSchema = new Mongoose.Schema({
+const lastMessageSchema = new mongoose.Schema({
     _id: { type: String },
     content: {
         type: String,
@@ -68,7 +68,7 @@ const conversationSchema = new mongoose.Schema({
         ref: "User"
     }
     ],
-    lastMessageSchema: {
+    lastMessage: {
         type: lastMessageSchema,
         default: null
     },
@@ -83,7 +83,7 @@ const conversationSchema = new mongoose.Schema({
 });
 
 conversationSchema.index({
-    "participant.userId": 1, lastMessageAt: -1
+    "participants.userId": 1, lastMessageAt: -1
 });
 
 const Conversation = mongoose.model("Conversation", conversationSchema);

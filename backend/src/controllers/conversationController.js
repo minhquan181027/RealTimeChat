@@ -23,7 +23,7 @@ const formatConversation = (conversation) => {
         participants: c.participants.map((p) => ({
             _id: p.userId?._id,
             displayName: p.userId?.displayName,
-            avataUrl: p.userId?.avataUrl,
+            avatarUrl: p.userId?.avatarUrl,
             joinAt: p.joinAt,
         })),
     };

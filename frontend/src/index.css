@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, lemonade, night, coffee, winter, dim, nord, sunset, cupcake, bumblebee, emerald, corporate, synthwave, retro, cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury, dracula, cmyk, autumn, business, acid, caramellatte, abyss, silk;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -117,6 +121,44 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* BẮC CẦU BIẾN MÀU: Ép shadcn dùng màu của daisyUI */
+[data-theme] {
+  --background: var(--color-base-100);
+  --foreground: var(--color-base-content);
+
+  --card: var(--color-base-100);
+  --card-foreground: var(--color-base-content);
+  --popover: var(--color-base-100);
+  --popover-foreground: var(--color-base-content);
+
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-content);
+
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-secondary-content);
+
+  --muted: var(--color-base-200);
+  --muted-foreground: var(--color-base-content);
+
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-accent-content);
+
+  --border: var(--color-base-300);
+  --input: var(--color-base-300);
+  --ring: var(--color-base-content);
+
+  /* Biến riêng cho Sidebar của shadcn */
+  --sidebar: var(--color-base-200);
+  /* Nền sidebar tối hơn nền chính 1 chút */
+  --sidebar-foreground: var(--color-base-content);
+  --sidebar-border: var(--color-base-300);
+  --sidebar-accent: var(--color-base-300);
+  --sidebar-accent-foreground: var(--color-base-content);
+  --sidebar-primary: var(--color-primary);
+  --sidebar-primary-foreground: var(--color-primary-content);
+  --sidebar-ring: var(--color-primary);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -128,5 +170,9 @@
 
   html {
     @apply font-sans;
+  }
+
+  [data-theme] body {
+    @apply bg-base-100 text-base-content;
   }
 }

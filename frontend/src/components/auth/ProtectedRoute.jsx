@@ -19,7 +19,6 @@ const ProtectedRoute = () => {
 
                 // Nếu đã có token nhưng chưa có thông tin user
                 if (accessToken && !user) {
-                    console.log("concac")
                     await fetchMe()
                 }
 

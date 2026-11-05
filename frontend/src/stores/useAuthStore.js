@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
+import { useChatStore } from "./useChatStore";
 
 export const useAuthStore = create((set, get) => ({
     accessToken: null,
@@ -12,7 +13,9 @@ export const useAuthStore = create((set, get) => ({
     }
     ,
     clearState: () => {
-        set({ accessToken: null, user: null, loading: false })
+        set({ accessToken: null, user: null, loading: false });
+        localStorage.clear();
+        useChatStore.getState().reset();
     },
 
     signUp: async (username, password, email, firstName, lastName) => {
@@ -32,14 +35,18 @@ export const useAuthStore = create((set, get) => ({
 
     signIn: async (email, password) => {
         try {
-            set({ loading: true })
+            set({ loading: true });
+
 
             const data = await authService.signIn(email, password);
             const accessToken = data.accessToken;
+            useChatStore.getState().reset();
 
             get().setAccessToken(accessToken);
 
             await get().fetchMe();
+
+            await useAuthStore.getState().fetchConversations();
 
             toast.success("Đăng nhập thành công")
         } catch (error) {

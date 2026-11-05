@@ -1,7 +1,7 @@
 // src/pages/ChatAppPage.jsx
 import React, { useState } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import AppSidebar from "@/components/chat/AppSidebar";
+import AppSidebar from "@/components/chat/Appsidebar";
 import ChatList from "@/components/chat/Chatlist";
 import ChatWindow from "@/components/chat/Chatwindow";
 import { CHATS, INIT_MESSAGES } from "@/components/data/Chatdata";

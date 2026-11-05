@@ -43,10 +43,11 @@ export const useAuthStore = create((set, get) => ({
             useChatStore.getState().reset();
 
             get().setAccessToken(accessToken);
+            await useChatStore.getState().fetchConversations();
 
             await get().fetchMe();
 
-            await useAuthStore.getState().fetchConversations();
+
 
             toast.success("Đăng nhập thành công")
         } catch (error) {
@@ -68,7 +69,7 @@ export const useAuthStore = create((set, get) => ({
             get().setAccessToken(accessToken);
 
             await get().fetchMe();
-
+            await useChatStore.getState().fetchConversations();
             toast.success("Đăng nhập thành công")
         } catch (error) {
             console.error(error);

@@ -89,9 +89,10 @@ export const signIn = async (req, res) => {
         //trả refresh token về trong cookie
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
-            maxAge: REFRESH_TOKEN_TTL
+            secure: process.env.NODE_ENV === 'production',                        // 🔥 dev: false
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',     // 🔥 dev: lax
+            maxAge: REFRESH_TOKEN_TTL,
+            path: '/',
         });
 
         return res.status(200).json({ message: `User ${user.displayName} đã login thành công`, accessToken });

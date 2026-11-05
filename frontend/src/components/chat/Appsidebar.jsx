@@ -10,9 +10,17 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NAV_TOP } from "@/components/data/Chatdata";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 // Thanh icon dọc bên trái (chỉ hiện trên PC, shadcn tự ẩn trên mobile)
 const AppSidebar = () => {
+
+    const signOut = useAuthStore((state) => state.signOut);
+
+    const handleLogout = async () => {
+        console.log("đã click logout");
+        await signOut();
+    };
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader className="items-center py-4">
@@ -80,7 +88,7 @@ const AppSidebar = () => {
                                 <div className="divider my-0"></div>
 
                                 <li>
-                                    <button className="flex items-center gap-3 w-full text-error hover:bg-error/10 hover:text-error transition-colors">
+                                    <button className="flex items-center gap-3 w-full text-error hover:bg-error/10 hover:text-error transition-colors" onClick={handleLogout}>
                                         <LogOut className="size-4" />
                                         <span className="font-medium">Đăng xuất</span>
                                     </button>

@@ -23,7 +23,7 @@ export const useChatStore = create(
                 try {
                     set({ loading: true });
 
-                    const { conversations } = chatService.fetchConversations();
+                    const { conversations } = await chatService.fetchConversations();
 
                     set({ conversations, loading: false });
 

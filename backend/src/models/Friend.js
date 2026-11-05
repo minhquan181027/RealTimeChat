@@ -1,4 +1,4 @@
-import mongoose, { Mongoose } from "mongoose";
+import mongoose from "mongoose";
 
 const friendSchema = new mongoose.Schema(
     {
@@ -18,17 +18,16 @@ const friendSchema = new mongoose.Schema(
     }
 );
 
-friendSchema.pre('save', function (next) {
+friendSchema.pre('save', function () {
     const a = this.userA.toString();
     const b = this.userB.toString();
 
     if (a > b) {
+        const temp = this.userA;
         this.userA = this.userB;
-        this.userB = new mongoose.Types.ObjectId(a);
+        this.userB = temp;
     }
-    next();
-
-})
+});
 
 friendSchema.index({ userA: 1, userB: 1 }, { unique: true });
 

@@ -1,16 +1,15 @@
 // src/components/chat/ChatList.jsx
-import { Search, Palette, Plus, UserPlus, Users, BellOff } from "lucide-react";
+import { BellOff } from "lucide-react"; // Chỉ giữ lại icon cần thiết
 import { cn } from "cn";
-import { Input } from "@/components/ui/input";
-import { NAV_TOP, themes } from "@/components/data/Chatdata";
+import { NAV_TOP } from "@/components/data/Chatdata";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import ChatHeader from "./ChatHeader"; // Import component Header vừa tách
 
 const ChatList = ({ activeId, onSelect, className }) => {
     // Lấy dữ liệu
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
-
 
     // Nếu chưa có dữ liệu hoặc không phải mảng, trả về null
     if (!conversations || !Array.isArray(conversations)) {
@@ -22,10 +21,6 @@ const ChatList = ({ activeId, onSelect, className }) => {
             </div>
         );
     }
-
-    const handleThemeChange = (themeName) => {
-        document.documentElement.setAttribute("data-theme", themeName.toLowerCase());
-    };
 
     const formatTime = (dateString) => {
         if (!dateString) return "";
@@ -54,27 +49,25 @@ const ChatList = ({ activeId, onSelect, className }) => {
             name = conversation.group?.name || "Nhóm không tên";
             avatar = conversation.group?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
-            // Xử lý fallback: Hỗ trợ cả trường hợp p._id (đã format) và p.userId._id (chưa format)
             const otherUser = conversation.participants.find((p) => {
                 const pId = p._id || p.userId?._id;
                 return pId?.toString() !== currentUser?._id?.toString();
             });
 
             const otherUserId = otherUser?._id || otherUser?.userId?._id;
-            const otherUserInfo = otherUser?.userId || otherUser; // Fallback nếu backend chưa populate
+            const otherUserInfo = otherUser?.userId || otherUser;
 
             name = otherUserInfo?.displayName || "Người dùng ẩn";
             avatar = otherUserInfo?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         }
 
-        let lastMessageText = "Chưa có tin nhắn";
+        let lastMessageText;
         if (conversation.lastMessage) {
             const { type, content, senderId } = conversation.lastMessage;
-            const senderInfo = senderId?.userId || senderId; // Fallback
+            const senderInfo = senderId?.userId || senderId;
 
             if (type === "image") lastMessageText = "[Hình ảnh]";
             else if (type === "video") lastMessageText = "[Video]";
-            else if (type === "call") lastMessageText = "[Cuộc gọi]";
             else lastMessageText = content || "";
 
             const isMe = senderInfo?._id?.toString() === currentUser?._id?.toString();
@@ -102,44 +95,9 @@ const ChatList = ({ activeId, onSelect, className }) => {
 
     return (
         <div className={cn("h-full w-full shrink-0 flex-col border-r bg-background md:w-[350px]", className)}>
-            {/* Header */}
-            <div className="flex items-center gap-1 border-b bg-background p-3 text-foreground">
-                {/* ... (Giữ nguyên phần Header như cũ) ... */}
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 opacity-70" />
-                    <Input placeholder="Tìm kiếm" className="h-9 rounded-full border-none bg-muted pl-9 text-foreground shadow-none placeholder:text-muted-foreground" />
-                </div>
 
-                <div className="dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="flex size-9 items-center justify-center rounded-full hover:bg-muted cursor-pointer transition-colors">
-                        <Palette className="size-5" />
-                    </div>
-                    <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-2xl bg-base-200 text-base-content rounded-box w-56 mt-2 border border-base-300">
-                        {themes.map((theme) => (
-                            <li key={theme.name}>
-                                <button onClick={() => handleThemeChange(theme.name)} className="flex justify-between items-center cursor-pointer w-full">
-                                    <span className="text-sm font-medium">{theme.name}</span>
-                                    <div className="flex gap-1">
-                                        {theme.colors.map((color, idx) => (
-                                            <span key={idx} className={`w-2.5 h-2.5 rounded-full ${color}`}></span>
-                                        ))}
-                                    </div>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-
-                <div className="dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="flex size-9 items-center justify-center rounded-full hover:bg-muted cursor-pointer transition-colors">
-                        <Plus className="size-5" />
-                    </div>
-                    <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-2xl bg-base-200 text-base-content rounded-box w-48 mt-2 border border-base-300">
-                        <li><button className="flex items-center gap-3 w-full"><UserPlus className="size-4" /><span className="font-medium">Thêm bạn</span></button></li>
-                        <li><button className="flex items-center gap-3 w-full"><Users className="size-4" /><span className="font-medium">Tạo nhóm</span></button></li>
-                    </ul>
-                </div>
-            </div>
+            {/* Sử dụng Component Header vừa tách */}
+            <ChatHeader />
 
             {/* Danh sách chat */}
             <div className="min-h-0 flex-1 overflow-y-auto">

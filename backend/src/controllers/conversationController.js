@@ -109,45 +109,12 @@ export const getConversations = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        console.log("\n========== 🔍 DEBUG getConversations ==========");
-        console.log("👤 req.user._id:", userId);
-        console.log("🔢 userId type:", typeof userId);
-        console.log("🧬 userId constructor:", userId?.constructor?.name);
-        console.log("📛 req.user.displayName:", req.user.displayName);
-        console.log("📧 req.user.email:", req.user.email);
-        console.log("🗄️ Current DB name:", mongoose.connection.name);
-        console.log("🔗 Current DB host:", mongoose.connection.host);
-
-        // 🔥 Đếm theo ObjectId (đúng chuẩn)
-        const countWithObjectId = await Conversation.countDocuments({
-            "participants.userId": userId
-        });
-        // 🔥 Đếm theo String (test)
-        const countWithString = await Conversation.countDocuments({
-            "participants.userId": userId.toString()
-        });
-        // 🔥 Đếm TẤT CẢ conversations (không filter)
-        const countAll = await Conversation.countDocuments({});
-
-        console.log("📊 Count với ObjectId:", countWithObjectId);
-        console.log("📊 Count với String:", countWithString);
-        console.log("📊 Count ALL conversations (không filter):", countAll);
-
-        // 🔥 Nếu ALL > 0 nhưng filter = 0 → in ra participants của 1 doc để so sánh
-        if (countAll > 0 && countWithObjectId === 0) {
-            const sample = await Conversation.findOne().lean();
-            console.log("🚨 FILTER FAIL! Sample conversation participants:");
-            console.log(JSON.stringify(sample.participants, null, 2));
-            console.log("🚨 userId đang query:", userId.toString());
-        }
-
         const conversations = await Conversation.find({ "participants.userId": userId })
             .sort({ lastMessageAt: -1, updatedAt: -1 })
             .populate(populateOptions)
             .lean();
 
-        console.log("✅ Found after populate:", conversations.length);
-        console.log("================================================\n");
+
 
         return res.status(200).json({
             conversations: conversations.map(formatConversation),
@@ -192,6 +159,7 @@ export const getMessages = async (req, res) => {
         let messages = await Message.find(query)
             .sort({ createdAt: -1 })
             .limit(pageSize + 1)
+            .populate("senderId", "displayName avatarUrl")
             .lean();
 
         let nextCursor = null;

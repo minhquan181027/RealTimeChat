@@ -1,27 +1,16 @@
 // src/components/chat/ChatWindow.jsx
-import { useState } from "react";
 import {
     MessageSquare,
-    Phone,
     Video,
     MoreVertical,
     ChevronLeft,
-    Paperclip,
-    Smile,
-    Send,
 } from "lucide-react";
 import { cn } from "cn";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import ChatInput from "./ChatInput"; // Import component mới
 
 const ChatWindow = ({ chat, messages, onBack, onSend, className }) => {
-    const [text, setText] = useState("");
-
-    const submit = () => {
-        if (!text.trim()) return;
-        onSend(text.trim());
-        setText("");
-    };
+    // Đã xóa state text, setText và hàm submit ở đây vì đã chuyển vào ChatInput
 
     // Chưa chọn chat (PC) -> màn hình chào
     if (!chat) {
@@ -47,7 +36,6 @@ const ChatWindow = ({ chat, messages, onBack, onSend, className }) => {
                     <h2 className="truncate text-sm font-semibold md:text-base">{chat.name}</h2>
                 </div>
                 <div className="flex gap-1 text-muted-foreground">
-
                     <Button variant="ghost" size="icon" className="hidden sm:inline-flex"><Video className="size-5" /></Button>
                     <Button variant="ghost" size="icon"><MoreVertical className="size-5" /></Button>
                 </div>
@@ -64,27 +52,21 @@ const ChatWindow = ({ chat, messages, onBack, onSend, className }) => {
                                 m.mine ? "bg-primary/20 text-foreground" : "bg-background"
                             )}
                         >
-                            {!m.mine && <div className="mb-0.5 text-xs text-muted-foreground">{m.sender}</div>}
-                            <p className="break-words">{m.text}</p>
-                            <div className="mt-1 text-[11px] text-muted-foreground">{m.time}</div>
+                            {!m.mine && (
+                                <div className="mb-1 text-[11px] font-medium text-muted-foreground/60">
+                                    {m.sender}
+                                </div>
+                            )}
+
+                            <p className="wrap-break-word text-foreground">{m.text}</p>
+                            <div className="mt-1 text-[10px] text-muted-foreground/70 text-right">{m.time}</div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Ô nhập */}
-            <div className="flex shrink-0 items-center gap-1 border-t bg-background p-2 md:p-3">
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex"><Paperclip className="size-5" /></Button>
-                <Input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && submit()}
-                    placeholder={`Nhập tin nhắn tới ${chat.name}`}
-                    className="h-10 flex-1 rounded-full border-none bg-muted shadow-none focus-visible:ring-0"
-                />
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex"><Smile className="size-5" /></Button>
-                <Button size="icon" className="rounded-full" onClick={submit}><Send className="size-4" /></Button>
-            </div>
+            {/* Ô nhập - Đã tách thành component riêng */}
+            <ChatInput onSend={onSend} />
         </div>
     );
 };

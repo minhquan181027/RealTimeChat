@@ -40,6 +40,7 @@ export const useAuthStore = create((set, get) => ({
 
             const data = await authService.signIn(email, password);
             const accessToken = data.accessToken;
+            
             useChatStore.getState().reset();
 
             get().setAccessToken(accessToken);

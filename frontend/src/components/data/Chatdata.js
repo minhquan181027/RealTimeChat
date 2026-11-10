@@ -27,14 +27,3 @@ export const NAV_TOP = [
     { icon: User, label: "Cá nhân" },
 ];
 
-export const themes = [
-    { name: "Lemonade", colors: ["bg-yellow-400", "bg-blue-400", "bg-gray-200"] },
-    { name: "Night", colors: ["bg-blue-600", "bg-indigo-500", "bg-purple-400"] },
-    { name: "Coffee", colors: ["bg-orange-400", "bg-gray-400", "bg-gray-200"] },
-    { name: "Winter", colors: ["bg-white", "bg-blue-300", "bg-pink-400"] },
-    { name: "Dim", colors: ["bg-emerald-500", "bg-pink-500", "bg-red-500"] },
-    { name: "Nord", colors: ["bg-slate-300", "bg-sky-600", "bg-slate-500"] },
-    { name: "Cupcake", colors: ["bg-pink-200", "bg-purple-200", "bg-blue-200"] },
-    { name: "Synthwave", colors: ["bg-purple-900", "bg-pink-500", "bg-yellow-400"] },
-    { name: "Dracula", colors: ["bg-slate-800", "bg-purple-600", "bg-pink-500"] },
-];

@@ -1,17 +1,16 @@
 // src/components/chat/ChatList.jsx
-import { BellOff } from "lucide-react"; // Chỉ giữ lại icon cần thiết
+import { BellOff } from "lucide-react";
 import { cn } from "cn";
 import { NAV_TOP } from "@/components/data/Chatdata";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-import ChatHeader from "./ChatHeader"; // Import component Header vừa tách
+import ChatListHeader from "./ChatListHeader";
+import StatusBadge from "./StatusBadge";
 
 const ChatList = ({ activeId, onSelect, className }) => {
-    // Lấy dữ liệu
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
 
-    // Nếu chưa có dữ liệu hoặc không phải mảng, trả về null
     if (!conversations || !Array.isArray(conversations)) {
         return (
             <div className={cn("h-full w-full flex-col border-r bg-background md:w-[350px]", className)}>
@@ -54,9 +53,7 @@ const ChatList = ({ activeId, onSelect, className }) => {
                 return pId?.toString() !== currentUser?._id?.toString();
             });
 
-            const otherUserId = otherUser?._id || otherUser?.userId?._id;
             const otherUserInfo = otherUser?.userId || otherUser;
-
             name = otherUserInfo?.displayName || "Người dùng ẩn";
             avatar = otherUserInfo?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         }
@@ -80,26 +77,34 @@ const ChatList = ({ activeId, onSelect, className }) => {
             }
         }
 
-        const hasUnread = conversation.unreadCount > 0 || conversation.unreadCounts?.[currentUser?._id] > 0;
+        const unreadCount =
+            conversation.unreadCounts?.[currentUser?._id] ??
+            conversation.unreadCount ??
+            0;
+
+        const hasUnread = unreadCount > 0;
         const isMuted = conversation.isMuted || false;
+
+        // 👇 TẠM THỜI FAKE — thay bằng presence store sau
+        const isOnline = conversation.isOnline ?? true;
 
         return {
             name,
             avatar,
             lastMessageText,
             hasUnread,
+            unreadCount,
             isMuted,
+            isOnline,
             time: formatTime(conversation.lastMessageAt || conversation.updatedAt),
         };
     };
 
     return (
-        <div className={cn("h-full w-full shrink-0 flex-col border-r bg-background md:w-[350px]", className)}>
+        <div className={cn("flex h-full w-full shrink-0 flex-col border-r bg-background md:w-[400px]", className)}>
 
-            {/* Sử dụng Component Header vừa tách */}
-            <ChatHeader />
+            <ChatListHeader />
 
-            {/* Danh sách chat */}
             <div className="min-h-0 flex-1 overflow-y-auto">
                 {conversations.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -107,7 +112,8 @@ const ChatList = ({ activeId, onSelect, className }) => {
                     </div>
                 ) : (
                     conversations.map((c) => {
-                        const { name, avatar, lastMessageText, hasUnread, isMuted, time } = getConversationInfo(c);
+                        const { name, avatar, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time } =
+                            getConversationInfo(c);
 
                         return (
                             <button
@@ -118,22 +124,63 @@ const ChatList = ({ activeId, onSelect, className }) => {
                                     activeId === c._id && "bg-blue-50 md:bg-primary/10"
                                 )}
                             >
-                                <img src={avatar} alt={name} className="size-12 shrink-0 rounded-full object-cover" />
+                                {/* 👇 Avatar + StatusBadge */}
+                                <div className="relative size-12 shrink-0">
+                                    <img
+                                        src={avatar}
+                                        alt={name}
+                                        className="size-full rounded-full object-cover"
+                                    />
+                                    {c.type === "direct" && (
+                                        <StatusBadge
+                                            status={isOnline ? "online" : "offline"}
+                                            className="absolute bottom-0 right-0"
+                                        />
+                                    )}
+                                </div>
+
                                 <div className="min-w-0 flex-1 border-b pb-3 md:border-none md:pb-0">
                                     <div className="flex items-center justify-between gap-2">
-                                        <h3 className={cn("truncate text-[15px]", hasUnread ? "font-semibold" : "font-medium")}>
+                                        <h3
+                                            className={cn(
+                                                "truncate text-[15px]",
+                                                hasUnread ? "font-semibold" : "font-medium"
+                                            )}
+                                        >
                                             {name}
                                         </h3>
-                                        <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                                        <span
+                                            className={cn(
+                                                "flex shrink-0 items-center gap-1 text-xs",
+                                                hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+                                            )}
+                                        >
                                             {isMuted && <BellOff className="size-3.5" />}
                                             {time}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                                        <p className={cn("truncate text-sm", hasUnread ? "font-medium text-foreground" : "text-muted-foreground")}>
+                                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                                        <p
+                                            className={cn(
+                                                "truncate text-sm",
+                                                hasUnread
+                                                    ? "font-medium text-foreground"
+                                                    : "text-muted-foreground"
+                                            )}
+                                        >
                                             {lastMessageText}
                                         </p>
-                                        {hasUnread && <span className="size-2.5 shrink-0 rounded-full bg-red-500" />}
+
+                                        {hasUnread && (
+                                            <span
+                                                className={cn(
+                                                    "flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white",
+                                                    isMuted ? "bg-muted-foreground" : "bg-red-500"
+                                                )}
+                                            >
+                                                {unreadCount > 99 ? "99+" : unreadCount}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </button>
@@ -142,10 +189,15 @@ const ChatList = ({ activeId, onSelect, className }) => {
                 )}
             </div>
 
-            {/* Bottom nav */}
             <nav className="flex h-16 shrink-0 items-center justify-around border-t bg-background md:hidden">
                 {NAV_TOP.map(({ icon: Icon, label, active }) => (
-                    <button key={label} className={cn("flex flex-col items-center gap-0.5 text-[10px]", active ? "text-primary" : "text-muted-foreground")}>
+                    <button
+                        key={label}
+                        className={cn(
+                            "flex flex-col items-center gap-0.5 text-[10px]",
+                            active ? "text-primary" : "text-muted-foreground"
+                        )}
+                    >
                         <Icon className="size-6" />
                         <span>{label}</span>
                     </button>

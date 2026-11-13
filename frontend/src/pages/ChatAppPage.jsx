@@ -38,7 +38,7 @@ const ChatAppPage = () => {
             name = otherUser?.displayName || "Người dùng ẩn";
             avatar = otherUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         }
-        return { id: activeConversation._id, name, avatar };
+        return { id: activeConversation._id, name, avatar, isOnline: true };
     }, [activeConversation, currentUser]);
 
     // 3. Map dữ liệu tin nhắn từ Backend sang format của ChatWindow
@@ -81,7 +81,7 @@ const ChatAppPage = () => {
         <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
             <AppSidebar />
 
-            <SidebarInset className="min-w-0 flex-row overflow-hidden">
+            <SidebarInset className="flex flex-1 w-full min-w-0 flex-row overflow-hidden bg-background">
                 {/* Mobile: có chat đang mở thì ẩn list. PC: luôn hiện */}
                 <ChatList
                     activeId={activeId}

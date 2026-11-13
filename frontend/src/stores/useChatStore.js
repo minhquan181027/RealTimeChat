@@ -1,61 +1,88 @@
 // src/stores/useChatStore.js
 import { chatService } from '@/services/chatService';
-import { create } from 'zustand'
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const useChatStore = create(
     persist(
         (set, get) => ({
             conversations: [],
-            messages: {}, // Lưu theo dạng { conversationId: [msg1, msg2] }
-            cursors: {},
+            messages: {},      // { conversationId: [msg1, msg2] }
+            cursors: {},       // { conversationId: cursor }
             activeConversationId: null,
-            loading: false,
+            conLoading: false,
+            messageLoading: false,
 
+            // ==================== ACTIVE ====================
             setActiveConversationId: (id) => set({ activeConversationId: id }),
 
+            // ==================== RESET ====================
             reset: () => {
                 set({
                     conversations: [],
                     messages: {},
+                    cursors: {},
                     activeConversationId: null,
-                    loading: false,
-                })
+                    conLoading: false,
+                    messageLoading: false,
+                });
             },
 
+            // ==================== FETCH CONVERSATIONS ====================
             fetchConversations: async () => {
                 try {
-                    set({ loading: true });
+                    set({ conLoading: true });
                     const { conversations } = await chatService.fetchConversations();
-                    set({ conversations, loading: false });
+                    set({ conversations, conLoading: false });
                 } catch (error) {
                     console.error("Lỗi xảy ra khi fetch Conversation:", error);
-                    set({ loading: false });
+                    set({ conLoading: false });
                 }
             },
 
-            // Thêm action này
+            // ==================== FETCH MESSAGES ====================
             fetchMessages: async (conversationId, cursor = null) => {
-                // Nếu đã có tin nhắn trong store rồi thì không cần gọi lại API (tránh spam)
-                // if (!cursor && get().messages[conversationId]) return;
-                if (get().messages[conversationId]) return;
+                // Đã có tin nhắn rồi thì thôi (tránh spam khi chuyển qua lại)
+                // Bỏ check này nếu bạn muốn luôn refresh
+                if (!cursor && get().messages[conversationId]) return;
 
                 try {
-                    const { messages } = await chatService.fetchMessages(conversationId);
+                    set({ messageLoading: true });
+                    const { messages, nextCursor } =
+                        await chatService.fetchMessages(conversationId, cursor);
+
                     set((state) => ({
-                        messages: {
-                            ...state.messages,
-                            [conversationId]: messages
-                        }
+                        messages: cursor
+                            ? {
+                                // load thêm tin cũ -> prepend
+                                ...state.messages,
+                                [conversationId]: [
+                                    ...messages,
+                                    ...(state.messages[conversationId] || []),
+                                ],
+                            }
+                            : {
+                                ...state.messages,
+                                [conversationId]: messages,
+                            },
+                        cursors: {
+                            ...state.cursors,
+                            [conversationId]: nextCursor ?? null,
+                        },
+                        messageLoading: false,
                     }));
                 } catch (error) {
                     console.error("Lỗi xảy ra khi fetch Messages:", error);
+                    set({ messageLoading: false });
                 }
-            }
+            },
+
+           
         }),
         {
             name: "chat-storage",
-            partialize: (state) => ({ conversations: state.conversations })
+            // Chỉ persist conversations — messages để fetch lại mỗi lần mở
+            partialize: (state) => ({ conversations: state.conversations }),
         }
     )
-)
+);

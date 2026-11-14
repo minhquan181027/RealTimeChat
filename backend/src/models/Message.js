@@ -19,11 +19,17 @@ const messageSchema = new mongoose.Schema({
         type: String,
     },
 
+    type: {
+        type: String,
+        enum: ["text", "image", "video", "file"],
+        default: "text"
+    }
 },
     {
         timestamps: true
     })
-messageSchema.index({ conversationId: 1, createdAt: -1 });
+
+messageSchema.index({ conversationId: 1, createdAt: -1, _id: -1 });
 
 const Message = mongoose.model("Message", messageSchema);
 

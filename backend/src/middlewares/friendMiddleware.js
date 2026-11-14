@@ -11,6 +11,11 @@ export const checkFriendShip = async (req, res, next) => {
         const me = req.user._id.toString();
         const recipientId = req.body?.recipientId ?? null;
         const memberIds = req.body?.memberIds ?? [];
+        const conversationId = req.body?.conversationId ?? null;
+
+        if (conversationId) {
+            return next();
+        }
 
         if (!recipientId && memberIds.length === 0) {
             return res.status(400).json({ message: "Cần cung cấp recipientId hoặc memberId" });
@@ -49,13 +54,14 @@ export const checkFriendShip = async (req, res, next) => {
 export const checkGroupMemberShip = async (req, res, next) => {
     try {
         const { conversationId } = req.body;
-        const userId = req.user_id;
+        const userId = req.user._id; // 🆕 Sửa lại thành req.user._id
 
         const conversation = await Conversation.findById(conversationId);
         if (!conversation) {
             return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
         }
-        const isMember = conversation.participants.some((p) => p.userId.toString() === userId.toString);
+        // 🆕 Thêm dấu () vào toString
+        const isMember = conversation.participants.some((p) => p.userId.toString() === userId.toString());
 
         if (!isMember) {
             return res.status(403).json({ message: "Bạn không ở trong nhóm này" });

@@ -147,17 +147,38 @@ export const getMessages = async (req, res) => {
         }
 
         const query = { conversationId };
+
+        // ---- Cursor composite: "<createdAtISO>|<_id>" (base64) ----
         if (cursor) {
-            const cursorDate = new Date(cursor);
-            if (isNaN(cursorDate.getTime())) {
+            let cursorDate, cursorId;
+            try {
+                const decoded = Buffer.from(cursor, "base64").toString("utf8");
+                const [dateStr, id] = decoded.split("|");
+                cursorDate = new Date(dateStr);
+                cursorId = id;
+            } catch {
                 return res.status(400).json({ message: "cursor không hợp lệ" });
             }
-            query.createdAt = { $lt: cursorDate };
+
+            if (
+                !cursorDate ||
+                isNaN(cursorDate.getTime()) ||
+                !mongoose.isValidObjectId(cursorId)
+            ) {
+                return res.status(400).json({ message: "cursor không hợp lệ" });
+            }
+
+            // Lấy tin cũ hơn: createdAt < cursorDate
+            // HOẶC createdAt == cursorDate nhưng _id < cursorId (tránh trùng/mất khi trùng timestamp)
+            query.$or = [
+                { createdAt: { $lt: cursorDate } },
+                { createdAt: cursorDate, _id: { $lt: cursorId } },
+            ];
         }
 
         // Lấy dư 1 tin để biết còn trang tiếp theo hay không
         let messages = await Message.find(query)
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: -1, _id: -1 })
             .limit(pageSize + 1)
             .populate("senderId", "displayName avatarUrl")
             .lean();
@@ -165,7 +186,10 @@ export const getMessages = async (req, res) => {
         let nextCursor = null;
         if (messages.length > pageSize) {
             messages = messages.slice(0, pageSize);
-            nextCursor = messages[pageSize - 1].createdAt;
+            const last = messages[pageSize - 1];
+            nextCursor = Buffer.from(
+                `${last.createdAt.toISOString()}|${last._id.toString()}`
+            ).toString("base64");
         }
 
         // Đảo lại để tin cũ ở trên, tin mới ở dưới

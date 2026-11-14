@@ -1,100 +1,152 @@
 // src/pages/ChatAppPage.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/chat/SideBar";
 import ChatList from "@/components/chat/ChatList";
 import ChatWindow from "@/components/chat/ChatWindow";
 import { useChatStore } from "@/stores/useChatStore";
+import { chatService } from "@/services/chatService";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getMessageDivider } from "@/utils/date";
 
 const ChatAppPage = () => {
     const [activeId, setActiveId] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const uploadingRef = useRef(false); // chặn double-click upload
 
-    // Lấy dữ liệu từ Store
-    const { conversations, messages, fetchMessages } = useChatStore();
+    const { conversations, messages, cursors, messageLoading, fetchMessages } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
+    const sending = useChatStore((s) => !!s.sending[activeId]);
 
-    // 1. Gọi API lấy tin nhắn khi user click vào conversation
+    // Reset indicator upload khi đổi chat (upload cũ vẫn chạy tới chat cũ)
     useEffect(() => {
-        if (activeId) {
-            fetchMessages(activeId);
-        }
+        setUploading(false);
+    }, [activeId]);
+
+    // Load tin nhắn lần đầu khi click conversation
+    useEffect(() => {
+        if (activeId) fetchMessages(activeId);
     }, [activeId, fetchMessages]);
 
-    // 2. Lấy thông tin conversation đang active để truyền cho ChatWindow
+    // Load thêm tin cũ khi lướt lên top
+    const handleLoadMore = useCallback(() => {
+        if (!activeId) return;
+        const nextCursor = cursors?.[activeId] ?? null;
+        if (!nextCursor) return;
+        fetchMessages(activeId, nextCursor);
+    }, [activeId, cursors, fetchMessages]);
+
     const activeConversation = conversations.find((c) => c._id === activeId);
 
     const activeChat = useMemo(() => {
         if (!activeConversation) return null;
-
         let name, avatar;
         if (activeConversation.type === "group") {
             name = activeConversation.group?.name || "Nhóm không tên";
-            avatar = activeConversation.group?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            avatar = activeConversation.group?.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
             const otherUser = activeConversation.participants.find(
                 (p) => p._id?.toString() !== currentUser?._id?.toString()
             );
             name = otherUser?.displayName || "Người dùng ẩn";
-            avatar = otherUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            avatar = otherUser?.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         }
         return { id: activeConversation._id, name, avatar, isOnline: true };
     }, [activeConversation, currentUser]);
 
-    // 3. Map dữ liệu tin nhắn từ Backend sang format của ChatWindow
     const chatMessages = useMemo(() => {
         const rawMessages = messages[activeId] || [];
-
-        return rawMessages.map((m) => {
+        return rawMessages.map((m, index) => {
             const isMine = m.senderId?._id?.toString() === currentUser?._id?.toString();
+            const currentDate = new Date(m.createdAt);
+            const prevMessage = rawMessages[index - 1];
+            const prevDate = prevMessage ? new Date(prevMessage.createdAt) : null;
+            const dividerText = getMessageDivider(currentDate, prevDate);
+
             return {
                 id: m._id,
                 mine: isMine,
                 text: m.content || "",
+                imgURL: m.imgURL || null,
                 sender: m.senderId?.displayName || "Ai đó",
-                time: new Date(m.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                time: currentDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                dividerText,
+                pending: !!m._pending,
+                failed: !!m._failed,
             };
         });
     }, [messages, activeId, currentUser]);
 
-    // Hàm gửi tin nhắn (Tạm thời vẫn dùng state cục bộ hoặc bro có thể viết thêm API gửi tin nhắn sau)
-    const handleSend = (text) => {
-        // Nếu bro muốn gửi tin nhắn thật, hãy gọi API ở đây và update lại store
-        // Hiện tại mình sẽ log ra để bro biết nó chạy đúng
-        console.log("Gửi tin nhắn:", text, "tới conversation:", activeId);
+    const handleSend = useCallback((text) => {
+        if (!activeConversation || !currentUser) return;
+        useChatStore.getState().sendMessage({
+            conversationId: activeConversation._id,
+            type: activeConversation.type,
+            content: text,
+            senderUser: currentUser,
+        });
+    }, [activeConversation, currentUser]);
 
-        // Mẹo nhỏ: Nếu muốn hiển thị ngay lập tức (Optimistic UI) thì có thể push tạm vào store
-        // useChatStore.setState((state) => ({
-        //     messages: {
-        //         ...state.messages,
-        //         [activeId]: [...(state.messages[activeId] || []), {
-        //             _id: Date.now().toString(),
-        //             senderId: currentUser,
-        //             content: text,
-        //             createdAt: new Date().toISOString()
-        //         }]
-        //     }
-        // }))
-    };
+    const handleRetry = useCallback((tempId) => {
+        if (!activeConversation || !currentUser) return;
+        useChatStore.getState().retryMessage({
+            conversationId: activeConversation._id,
+            tempId,
+            type: activeConversation.type,
+            senderUser: currentUser,
+        });
+    }, [activeConversation, currentUser]);
+
+    const handleUpload = useCallback(async (file) => {
+        if (!activeConversation || !currentUser || uploadingRef.current) return;
+        uploadingRef.current = true;
+        setUploading(true);
+        try {
+            const imageUrl = await chatService.uploadImage(file);
+            useChatStore.getState().sendMessage({
+                conversationId: activeConversation._id,
+                type: activeConversation.type,
+                content: "",
+                imgURL: imageUrl,
+                senderUser: currentUser,
+            });
+        } catch (err) {
+            console.error("Upload ảnh thất bại:", err);
+            // TODO: thay bằng toast nếu có
+        } finally {
+            uploadingRef.current = false;
+            setUploading(false);
+        }
+    }, [activeConversation, currentUser]);
+
+    const hasMore = !!cursors?.[activeId];
 
     return (
         <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
             <AppSidebar />
 
             <SidebarInset className="flex flex-1 w-full min-w-0 flex-row overflow-hidden bg-background">
-                {/* Mobile: có chat đang mở thì ẩn list. PC: luôn hiện */}
                 <ChatList
                     activeId={activeId}
                     onSelect={setActiveId}
                     className={activeId ? "hidden md:flex" : "flex"}
                 />
 
-                {/* Mobile: chưa mở chat thì ẩn khung chat. PC: luôn hiện */}
                 <ChatWindow
+                    key={activeId ?? "empty"}
                     chat={activeChat}
-                    messages={chatMessages} // Truyền mảng đã được map
+                    messages={chatMessages}
                     onBack={() => setActiveId(null)}
                     onSend={handleSend}
+                    onRetry={handleRetry}
+                    onUpload={handleUpload}
+                    sending={sending}
+                    uploading={uploading}
+                    onLoadMore={handleLoadMore}
+                    hasMore={hasMore}
+                    loading={messageLoading}
                     className={activeId ? "flex" : "hidden md:flex"}
                 />
             </SidebarInset>

@@ -1,23 +1,29 @@
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
+import cloudinary from 'cloudinary';
+import multer from 'multer';
 
-// Cập nhật lastMessage, lastMessageAt, seenBy và unreadCounts sau khi có tin nhắn mới
+cloudinary.v2.config();
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 const updateConversationAfterNewMessage = (conversation, message, senderId) => {
     conversation.set({
         lastMessage: {
             _id: message._id.toString(),
             content: message.content,
+            type: message.type, // 🆕 Cập nhật type
             senderId,
             createdAt: message.createdAt,
         },
         lastMessageAt: message.createdAt,
-        seenBy: [senderId], // người gửi coi như đã xem
+        seenBy: [senderId],
     });
 
     conversation.participants.forEach((p) => {
         const memberId = p.userId.toString();
         const prev = conversation.unreadCounts.get(memberId) || 0;
-        // người gửi = 0, người khác +1
         conversation.unreadCounts.set(memberId, memberId === senderId.toString() ? 0 : prev + 1);
     });
 };
@@ -53,7 +59,6 @@ export const sendDirectMessage = async (req, res) => {
                 return res.status(400).json({ message: "Không thể nhắn tin cho chính mình" });
             }
 
-            // Tìm cuộc trò chuyện direct đã có giữa 2 người
             conversation = await Conversation.findOne({
                 type: "direct",
                 "participants.userId": { $all: [senderId, recipientId] },
@@ -69,11 +74,16 @@ export const sendDirectMessage = async (req, res) => {
             }
         }
 
+        // 🆕 Tự động xác định type
+        let messageType = "text";
+        if (imgURL) messageType = "image";
+
         const message = await Message.create({
             conversationId: conversation._id,
             senderId,
             content,
             imgURL,
+            type: messageType, // 🆕 Truyền type vào
         });
 
         updateConversationAfterNewMessage(conversation, message, senderId);
@@ -110,11 +120,16 @@ export const sendGroupMessage = async (req, res) => {
             return res.status(403).json({ message: "Bạn không thuộc nhóm này" });
         }
 
+        // 🆕 Tự động xác định type
+        let messageType = "text";
+        if (imgURL) messageType = "image";
+
         const message = await Message.create({
             conversationId,
             senderId,
             content,
             imgURL,
+            type: messageType, // 🆕 Truyền type vào
         });
 
         updateConversationAfterNewMessage(conversation, message, senderId);
@@ -126,3 +141,34 @@ export const sendGroupMessage = async (req, res) => {
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };
+
+
+
+export const uploadImage = [
+    upload.single('image'), // Tên field phải khớp với frontend
+    async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: 'Vui lòng chọn file ảnh.' });
+            }
+
+            // Upload buffer lên Cloudinary
+            const result = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.v2.uploader.upload_stream(
+                    { folder: 'chat_app' }, // Thư mục trên Cloudinary
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(req.file.buffer);
+            });
+
+            // Trả về URL để frontend lưu vào DB
+            res.status(200).json({ url: result.secure_url });
+        } catch (error) {
+            console.error('Lỗi upload ảnh:', error);
+            res.status(500).json({ message: 'Lỗi server khi upload ảnh.' });
+        }
+    },
+];

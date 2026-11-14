@@ -63,12 +63,18 @@ const ChatList = ({ activeId, onSelect, className }) => {
             const { type, content, senderId } = conversation.lastMessage;
             const senderInfo = senderId?.userId || senderId;
 
-            if (type === "image") lastMessageText = "[Hình ảnh]";
-            else if (type === "video") lastMessageText = "[Video]";
-            else lastMessageText = content || "";
+            // 🆕 Kiểm tra type (thêm fallback check nếu là data cũ)
+            if (type === "image") {
+                lastMessageText = "[Hình ảnh]";
+            } else if (type === "video") {
+                lastMessageText = "[Video]";
+            } else {
+                lastMessageText = content || ""; // Nếu text rỗng thì hiện chuỗi rỗng
+            }
 
             const isMe = senderInfo?._id?.toString() === currentUser?._id?.toString();
 
+            // Nếu là ảnh/video thì không cần prefix "Bạn:" nghe hơi thừa, nhưng tùy bro
             if (conversation.type === "group") {
                 if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
                 else if (senderInfo?.displayName) lastMessageText = `${senderInfo.displayName}: ${lastMessageText}`;

@@ -99,6 +99,7 @@ export const useChatStore = create(
                             lastMessage: {
                                 _id: message._id,
                                 content: message.content,
+                                type: message.type,
                                 senderId: senderUserId,
                                 createdAt: message.createdAt,
                             },
@@ -225,6 +226,75 @@ export const useChatStore = create(
                     set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
                 }
             },
+
+            // ==================== SEND IMAGE MESSAGE  ====================
+            sendImageMessage: async ({ conversationId, type, file, senderUser }) => {
+                if (!conversationId || !senderUser || !file) return;
+                if (get().sending[conversationId]) return;
+
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                // Tạo URL ảo để hiển thị ngay lập tức
+                const localUrl = URL.createObjectURL(file);
+
+                const tempMsg = {
+                    _id: tempId,
+                    conversationId,
+                    senderId: senderUser,
+                    content: "",
+                    imgURL: localUrl,
+                    type: "image",
+                    createdAt: new Date().toISOString(),
+                    _pending: true,
+                    _failed: false,
+                };
+
+                // 1) Đẩy ảnh (local) lên khung chat ngay lập tức
+                set((s) => ({
+                    messages: {
+                        ...s.messages,
+                        [conversationId]: [...(s.messages[conversationId] || []), tempMsg],
+                    },
+                    sending: { ...s.sending, [conversationId]: true },
+                }));
+                get()._bumpConversation(conversationId, tempMsg, senderUser._id);
+
+                try {
+                    // 2) Upload ảnh lên Cloudinary
+                    const realUrl = await chatService.uploadImage(file);
+
+                    // 3) Gửi tin nhắn chứa URL thật vào DB
+                    const realMsg = await chatService.sendMessage({
+                        conversationId,
+                        type,
+                        content: "",
+                        imgURL: realUrl,
+                    });
+
+                    const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
+
+                    // 4) Thay thế ảnh local bằng ảnh thật
+                    get()._replaceMessage(conversationId, tempId, merged);
+                    get()._bumpConversation(conversationId, merged, senderUser._id);
+
+                    // Giải phóng bộ nhớ (chỉ gọi khi thành công)
+                    URL.revokeObjectURL(localUrl);
+                } catch (err) {
+                    console.error("Gửi ảnh thất bại:", err.response?.data || err);
+                    // Đánh dấu lỗi, giữ nguyên localUrl để user vẫn thấy ảnh bị lỗi
+                    set((s) => ({
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                                m._id === tempId ? { ...m, _pending: false, _failed: true } : m
+                            ),
+                        },
+                    }));
+                    get()._syncConversationLastMessage(conversationId);
+                } finally {
+                    set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
+                }
+            },
+
         }),
         {
             name: "chat-storage",

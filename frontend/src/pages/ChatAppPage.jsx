@@ -18,10 +18,14 @@ const ChatAppPage = () => {
     const currentUser = useAuthStore((state) => state.user);
     const sending = useChatStore((s) => !!s.sending[activeId]);
 
-    // Reset indicator upload khi đổi chat (upload cũ vẫn chạy tới chat cũ)
+    // // Reset indicator upload khi đổi chat (upload cũ vẫn chạy tới chat cũ)
+    // useEffect(() => {
+    //     setUploading(false);
+    // }, [activeId]);
+
     useEffect(() => {
-        setUploading(false);
-    }, [activeId]);
+        useChatStore.getState().fetchConversations();
+    }, []);
 
     // Load tin nhắn lần đầu khi click conversation
     useEffect(() => {
@@ -104,17 +108,15 @@ const ChatAppPage = () => {
         uploadingRef.current = true;
         setUploading(true);
         try {
-            const imageUrl = await chatService.uploadImage(file);
-            useChatStore.getState().sendMessage({
+            // Chỉ cần gọi hàm mới trong store
+            await useChatStore.getState().sendImageMessage({
                 conversationId: activeConversation._id,
                 type: activeConversation.type,
-                content: "",
-                imgURL: imageUrl,
+                file,
                 senderUser: currentUser,
             });
         } catch (err) {
             console.error("Upload ảnh thất bại:", err);
-            // TODO: thay bằng toast nếu có
         } finally {
             uploadingRef.current = false;
             setUploading(false);

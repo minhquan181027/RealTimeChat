@@ -3,12 +3,27 @@ import { useState, useRef } from "react";
 import { Paperclip, Smile, Send, ThumbsUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import EmojiPickerButton from "./EmojiPickerButton";
 
 const ChatInput = ({ onSend, onUpload, disabled = false }) => {
     const [text, setText] = useState("");
     const fileInputRef = useRef(null);
+    const inputRef = useRef(null);
+
 
     const isTyping = text.trim().length > 0;
+
+    const handleEmojiSelect = (emoji) => {
+        const cursor = inputRef.current?.selectionStart || text.length;
+        const newText = text.slice(0, cursor) + emoji + text.slice(cursor);
+        setText(newText);
+
+        setTimeout(() => {
+            inputRef.current?.focus();
+            const newCursor = cursor + emoji.length;
+            inputRef.current?.setSelectionRange(newCursor, newCursor);
+        }, 0);
+    };
 
     const submit = () => {
         if (!isTyping || disabled) return;
@@ -56,7 +71,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
             <Button
                 variant="ghost"
                 size="icon"
-                className="hidden sm:inline-flex"
+
                 onClick={handleFileClick}
                 title="Gửi ảnh"
                 disabled={disabled}
@@ -72,15 +87,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
                 className="h-10 flex-1 rounded-full border-none bg-muted shadow-none focus-visible:ring-0"
             />
 
-            <Button
-                variant="ghost"
-                size="icon"
-                className="hidden sm:inline-flex"
-                title="Chọn biểu tượng"
-                disabled={disabled}
-            >
-                <Smile className="size-5" />
-            </Button>
+            <EmojiPickerButton onEmojiSelect={handleEmojiSelect} disabled={disabled} />
 
             {isTyping ? (
                 <Button

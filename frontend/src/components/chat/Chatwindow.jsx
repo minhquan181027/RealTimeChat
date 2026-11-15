@@ -1,37 +1,38 @@
 // src/components/chat/ChatWindow.jsx
-import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
-import { MessageSquare } from "lucide-react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
+import { MessageSquare, X } from "lucide-react";
 import { cn } from "cn";
 import ChatInput from "./ChatInput";
 import ChatWindowHeader from "./ChatWindowHeader";
+import MessageItem from "./MessageItem"; // 🆕 Import file mới tạo
 
 const SCROLL_THRESHOLD = 80;
 
-const ChatWindow = ({
-    chat,
-    messages,
-    onBack,
-    onSend,
-    onRetry,
-    onUpload,
-    sending,
-    uploading,
-    onLoadMore,
-    hasMore,
-    loading,
-    className,
-}) => {
+const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending, uploading, onLoadMore, hasMore, loading, className }) => {
     const listRef = useRef(null);
     const prevScrollHeightRef = useRef(0);
     const firstLoadRef = useRef(true);
     const lastMsgIdRef = useRef(null);
+    const isStickyBottomRef = useRef(true);
 
-    // 1) Load more khi gần top
+    const [selectedImage, setSelectedImage] = useState(null);
+
+    // 🆕 Tách hàm onLoad của ảnh ra đây để truyền xuống Component con
+    const handleImageLoad = useCallback(() => {
+        if (isStickyBottomRef.current && listRef.current) {
+            listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+    }, []);
+
+    // 1) Load more khi gần top + Cập nhật trạng thái Sticky Bottom
     useEffect(() => {
         const el = listRef.current;
         if (!el || !chat) return;
 
         const onScroll = () => {
+            const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+            isStickyBottomRef.current = distanceToBottom < 100;
+
             if (el.scrollTop > SCROLL_THRESHOLD) return;
             if (!hasMore || loading) return;
             prevScrollHeightRef.current = el.scrollHeight;
@@ -42,7 +43,7 @@ const ChatWindow = ({
         return () => el.removeEventListener("scroll", onScroll);
     }, [chat, hasMore, loading, onLoadMore]);
 
-    // 2) Scroll: lần đầu / prepend tin cũ / append tin của mình
+    // 2) Scroll logic
     useLayoutEffect(() => {
         const el = listRef.current;
         if (!el || messages.length === 0) return;
@@ -56,16 +57,18 @@ const ChatWindow = ({
             el.scrollTop = el.scrollHeight;
             firstLoadRef.current = false;
             prevScrollHeightRef.current = 0;
+            isStickyBottomRef.current = true;
             return;
         }
 
         if (prevScrollHeightRef.current > 0) {
-            el.scrollTop += el.scrollHeight - prevScrollHeightRef.current;
+            const delta = el.scrollHeight - prevScrollHeightRef.current;
+            el.scrollTop += delta;
             prevScrollHeightRef.current = 0;
             return;
         }
 
-        if (isAppendMine) {
+        if (isAppendMine || isStickyBottomRef.current) {
             el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
         }
     }, [messages]);
@@ -98,78 +101,50 @@ const ChatWindow = ({
                     </div>
                 )}
 
-                {messages.map((m) => {
-                    // 🆕 Kiểm tra xem tin nhắn có CHỈ chứa ảnh (không kèm text) hay không
-                    const isOnlyImage = m.imgURL && !m.text;
-
-                    return (
-                        <Fragment key={m.id}>
-                            {m.dividerText && (
-                                <div className="flex justify-center my-4">
-                                    <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                                        {m.dividerText}
-                                    </span>
-                                </div>
-                            )}
-
-                            <div className={cn("flex items-end gap-2", m.mine ? "justify-end" : "justify-start")}>
-                                {!m.mine && (
-                                    <img src={chat.avatar} alt="" className="size-9 self-end rounded-full" />
-                                )}
-
-                                {m.mine && m.failed && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onRetry?.(m.id)}
-                                        className="mb-1 text-[11px] font-medium text-destructive hover:underline"
-                                    >
-                                        Gửi lại
-                                    </button>
-                                )}
-
-                                <div
-                                    className={cn(
-                                        "flex flex-col max-w-[80%] text-base md:max-w-[60%]",
-                                        // 🆕 Nếu CHỈ LÀ ẢNH -> Bỏ padding, bỏ background, bỏ shadow của bong bóng
-                                        !isOnlyImage && "rounded-2xl px-4 py-2.5 shadow-sm",
-                                        !isOnlyImage && (m.mine ? "bg-primary/20 text-foreground" : "bg-background"),
-                                        m.pending && "opacity-60"
-                                    )}
-                                >
-                                    {!m.mine && (
-                                        <div className="mb-1 text-[13px] font-medium text-muted-foreground/60">
-                                            {m.sender}
-                                        </div>
-                                    )}
-
-                                    {/* 🆕 Ảnh: Nếu chỉ là ảnh thì bo góc to (rounded-2xl), nếu có text thì bo góc nhỏ (rounded-lg) */}
-                                    {m.imgURL && (
-                                        <img
-                                            src={m.imgURL}
-                                            alt="Ảnh"
-                                            className={cn(
-                                                "w-full object-cover shadow-sm",
-                                                isOnlyImage
-                                                    ? "max-h-[300px] rounded-2xl"
-                                                    : "max-h-60 mb-1 rounded-lg"
-                                            )}
-                                            loading="lazy"
-                                        />
-                                    )}
-
-                                    {m.text && (
-                                        <p className="wrap-break-word text-foreground">{m.text}</p>
-                                    )}
-
-
-                                </div>
+                {/* 🆕 GỌN GÀNG HƠN RẤT NHIỀU NHỜ TÁCH COMPONENT */}
+                {messages.map((m) => (
+                    <Fragment key={m.id}>
+                        {m.dividerText && (
+                            <div className="flex justify-center my-4">
+                                <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                    {m.dividerText}
+                                </span>
                             </div>
-                        </Fragment>
-                    );
-                })}
+                        )}
+
+                        <MessageItem
+                            m={m}
+                            chat={chat}
+                            onRetry={onRetry}
+                            setSelectedImage={setSelectedImage}
+                            onImageLoad={handleImageLoad}
+                        />
+                    </Fragment>
+                ))}
             </div>
 
             <ChatInput onSend={onSend} onUpload={onUpload} disabled={inputDisabled} />
+
+            {/* Modal xem ảnh */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <button
+                        onClick={() => setSelectedImage(null)}
+                        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+                    >
+                        <X className="size-6" />
+                    </button>
+                    <img
+                        src={selectedImage}
+                        alt="Xem ảnh"
+                        className="max-h-full max-w-full object-contain"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 };

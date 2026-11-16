@@ -7,9 +7,20 @@ import ChatAppPage from './pages/ChatAppPage'
 import { Toaster } from 'sonner'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ForgotPass from './pages/ForgotPass'
+import { useAuthStore } from './stores/useAuthStore'
+import { useSocketStore } from './stores/useSocketStore'
+import { useEffect } from 'react'
 
 function App() {
+  const { accessToken } = useAuthStore();
+  const { connectSocket, disconnectSocket } = useSocketStore();
 
+  useEffect(() => {
+    if (accessToken) {
+      connectSocket();
+    }
+    return () => disconnectSocket();
+  }, [accessToken]);
   return (
     <div>
       <Toaster richColors />

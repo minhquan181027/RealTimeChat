@@ -10,15 +10,20 @@ import conversationRoute from './routes/conversationRoute.js';
 import cookieParser from 'cookie-parser';
 import { protectedRoute } from './middlewares/authMiddleware.js';
 import cors from 'cors';
-import helmet from 'helmet';
+
+import { createServer } from 'http';
+import { initSocket } from './socket/index.js';
 
 const app = express();
+const server = createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 1234;
 
 // middlewares
 app.use(express.json());
 app.use(cookieParser());
-app.use(helmet({ crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" } }));
+
 app.use(cors({
     origin: ["http://localhost:5173",
         "https://192.168.1.154:5173"
@@ -38,7 +43,7 @@ app.use('/api/message', messageRoute);
 app.use('/api/conversation', conversationRoute);
 
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`Server bắt đầu trên cổng ${PORT}`);
     });
 });

@@ -32,4 +32,8 @@ export const chatService = {
         });
         return res.data.url; // Trả về URL từ Cloudinary
     },
+    markAsRead: async (conversationId) => {
+        const res = await api.put(`/conversation/${conversationId}/read`);
+        return res.data;
+    },
 }

@@ -15,7 +15,7 @@ const lastMessageSchema = new mongoose.Schema({
     content: { type: String, default: null },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: null },
-    // 🆕 Thêm type
+  
     type: { type: String, enum: ["text", "image", "video", "file"], default: "text" }
 }, { _id: false });
 

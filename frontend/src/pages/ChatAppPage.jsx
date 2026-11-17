@@ -8,6 +8,7 @@ import { useChatStore } from "@/stores/useChatStore";
 import { chatService } from "@/services/chatService";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getMessageDivider } from "@/utils/date";
+import { useSocketStore } from "@/stores/useSocketStore";
 
 const ChatAppPage = () => {
     const [activeId, setActiveId] = useState(null);
@@ -17,22 +18,27 @@ const ChatAppPage = () => {
     const { conversations, messages, cursors, messageLoading, fetchMessages } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const sending = useChatStore((s) => !!s.sending[activeId]);
+    const onlineUsers = useSocketStore((state) => state.onlineUsers);
 
-    // // Reset indicator upload khi đổi chat (upload cũ vẫn chạy tới chat cũ)
-    // useEffect(() => {
-    //     setUploading(false);
-    // }, [activeId]);
 
     useEffect(() => {
         useChatStore.getState().fetchConversations();
     }, []);
 
-    // Load tin nhắn lần đầu khi click conversation
+    useEffect(() => {
+        useChatStore.getState().setActiveConversationId(activeId);
+
+        if (activeId) {
+            useChatStore.getState().markChatAsRead(activeId);
+        }
+    }, [activeId]);
+
+
     useEffect(() => {
         if (activeId) fetchMessages(activeId);
     }, [activeId, fetchMessages]);
 
-    // Load thêm tin cũ khi lướt lên top
+
     const handleLoadMore = useCallback(() => {
         if (!activeId) return;
         const nextCursor = cursors?.[activeId] ?? null;
@@ -45,21 +51,38 @@ const ChatAppPage = () => {
     const activeChat = useMemo(() => {
         if (!activeConversation) return null;
         let name, avatar;
+        let isOnline = false;
+        let lastActiveAt = null;
+
         if (activeConversation.type === "group") {
             name = activeConversation.group?.name || "Nhóm không tên";
             avatar = activeConversation.group?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
-            const otherUser = activeConversation.participants.find(
-                (p) => p._id?.toString() !== currentUser?._id?.toString()
-            );
-            name = otherUser?.displayName || "Người dùng ẩn";
-            avatar = otherUser?.avatarUrl ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-        }
-        return { id: activeConversation._id, name, avatar, isOnline: true };
-    }, [activeConversation, currentUser]);
+            const otherUser = activeConversation.participants.find((p) => {
+                const pId = p._id || p.userId?._id; // 🆕 Fix lại logic lấy ID cho chuẩn
+                return pId?.toString() !== currentUser?._id?.toString();
+            });
 
+            const otherUserInfo = otherUser?.userId || otherUser;
+            name = otherUserInfo?.displayName || "Người dùng ẩn";
+            avatar = otherUserInfo?.avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+
+            // 🆕 Check online cho chat 1-1
+            const otherUserId = otherUserInfo?._id?.toString();
+            isOnline = onlineUsers.includes(otherUserId);
+            lastActiveAt = otherUserInfo?.lastActiveAt;
+        }
+
+        return {
+            id: activeConversation._id, name, avatar, isOnline, lastActiveAt,
+            // 🆕 Ép kiểu an toàn 100% ở đây
+            seenBy: (activeConversation.seenBy || []).map(s => s?._id?.toString() || s?.toString()),
+            isGroup: activeConversation.type === "group",
+            participants: activeConversation.participants
+        };
+    }, [activeConversation, currentUser, onlineUsers]);
     const chatMessages = useMemo(() => {
         const rawMessages = messages[activeId] || [];
         return rawMessages.map((m, index) => {

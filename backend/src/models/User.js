@@ -50,6 +50,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         sparse: true
     },
+    lastActiveAt: {
+        type: Date,
+        default: Date.now,
+    },
 
 },
     {

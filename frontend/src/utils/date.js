@@ -37,3 +37,22 @@ export const getMessageDivider = (currentDate, prevDate) => {
     // 4. Quá 1 tuần -> Hiện giờ + Ngày tháng năm (VD: 16:46 27 Tháng 10, 2026)
     return `${timeStr} ${currentDate.getDate()} Tháng ${currentDate.getMonth() + 1}, ${currentDate.getFullYear()}`;
 };
+
+export const formatLastSeen = (lastActiveAt) => {
+    if (!lastActiveAt) return "Ngoại tuyến";
+
+    const now = new Date();
+    const lastActive = new Date(lastActiveAt);
+    const diffInMins = Math.floor((now - lastActive) / (1000 * 60));
+
+    if (diffInMins < 1) return "Vừa mới truy cập";
+    if (diffInMins < 60) return `Hoạt động ${diffInMins} phút trước`;
+
+    const diffInHours = Math.floor(diffInMins / 60);
+    if (diffInHours < 24) return `Hoạt động ${diffInHours} giờ trước`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `Hoạt động ${diffInDays} ngày trước`;
+
+    return `Hoạt động ${lastActive.toLocaleDateString("vi-VN")}`;
+};

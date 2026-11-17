@@ -1,11 +1,14 @@
+// src/stores/useSocketStore.js
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import { useAuthStore } from './useAuthStore';
+import { useChatStore } from './useChatStore';
 
 const baseURL = import.meta.env.VITE_SOCKET_URL;
 
 export const useSocketStore = create((set, get) => ({
     socket: null,
+    onlineUsers: [], // Lưu danh sách ID những người đang online
 
     connectSocket: () => {
         const accessToken = useAuthStore.getState().accessToken;
@@ -14,6 +17,7 @@ export const useSocketStore = create((set, get) => ({
             console.warn('Chưa có accessToken, không thể kết nối socket');
             return;
         }
+
         const existingSocket = get().socket;
         if (existingSocket?.connected) return;
 
@@ -29,6 +33,57 @@ export const useSocketStore = create((set, get) => ({
         });
 
         set({ socket });
+
+        socket.on("connect", () => {
+            console.log("🟢 Đã kết nối với socket:", socket.id);
+        });
+
+        // 🆕 1. Lấy danh sách online ban đầu (Backend gửi ngay khi vừa kết nối)
+        // Backend cần gửi: socket.emit("online-users", getOnlineUsers());
+        socket.on("online-users", (userIds) => {
+            set({ onlineUsers: userIds });
+        });
+
+        socket.on("user_online", (userId) => {
+            set((state) => {
+                // Nếu đã có trong mảng thì bỏ qua, tránh trùng lặp
+                if (state.onlineUsers.includes(userId)) return state;
+                return { onlineUsers: [...state.onlineUsers, userId] };
+            });
+        });
+
+        socket.on("user_offline", (data) => {
+
+            const offlineUserId = typeof data === "string" ? data : data.userId;
+            const lastActive = typeof data === "object" ? data.lastActiveAt : new Date();
+
+            set((state) => ({
+                onlineUsers: state.onlineUsers.filter((id) => id !== offlineUserId)
+            }));
+
+
+            useChatStore.getState().updateUserLastActiveAt(offlineUserId, lastActive);
+        });
+
+        socket.on("conversation_seen", (data) => {
+            useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("🔴 Mất kết nối socket");
+            set({ onlineUsers: [] });
+        });
+
+        socket.on("new_message", (message) => {
+            // Gọi hàm trong ChatStore để cập nhật UI
+            useChatStore.getState().receiveMessage(message);
+
+            // (Tùy chọn) Phát âm thanh thông báo nếu không phải là tin của mình
+            const currentUser = useAuthStore.getState().user;
+            if (message.senderId._id !== currentUser._id) {
+                new Audio('/notification.mp3').play();
+            }
+        });
     },
 
     disconnectSocket: () => {
@@ -37,6 +92,6 @@ export const useSocketStore = create((set, get) => ({
             socket.removeAllListeners();
             socket.disconnect();
         }
-        set({ socket: null });
+        set({ socket: null, onlineUsers: [] });
     },
 }));

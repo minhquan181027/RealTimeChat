@@ -4,12 +4,14 @@ import { cn } from "cn";
 import { NAV_TOP } from "@/components/data/Chatdata";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useSocketStore } from "@/stores/useSocketStore";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
 
 const ChatList = ({ activeId, onSelect, className }) => {
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
+    const onlineUsers = useSocketStore((state) => state.onlineUsers);
 
     if (!conversations || !Array.isArray(conversations)) {
         return (
@@ -43,6 +45,7 @@ const ChatList = ({ activeId, onSelect, className }) => {
     const getConversationInfo = (conversation) => {
         let name;
         let avatar;
+        let otherUserId = null;
 
         if (conversation.type === "group") {
             name = conversation.group?.name || "Nhóm không tên";
@@ -56,6 +59,7 @@ const ChatList = ({ activeId, onSelect, className }) => {
             const otherUserInfo = otherUser?.userId || otherUser;
             name = otherUserInfo?.displayName || "Người dùng ẩn";
             avatar = otherUserInfo?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+            otherUserId = otherUserInfo?._id?.toString();
         }
 
         let lastMessageText;
@@ -96,7 +100,7 @@ const ChatList = ({ activeId, onSelect, className }) => {
         const isMuted = conversation.isMuted || false;
 
         // 👇 TẠM THỜI FAKE — thay bằng presence store sau
-        const isOnline = conversation.isOnline ?? true;
+        const isOnline = conversation.type === "direct" && onlineUsers.includes(otherUserId);
 
         return {
             name,
@@ -141,9 +145,9 @@ const ChatList = ({ activeId, onSelect, className }) => {
                                         alt={name}
                                         className="size-full rounded-full object-cover"
                                     />
-                                    {c.type === "direct" && (
+                                    {c.type === "direct" && isOnline && (
                                         <StatusBadge
-                                            status={isOnline ? "online" : "offline"}
+                                            status="online"
                                             className="absolute bottom-0 right-0"
                                         />
                                     )}

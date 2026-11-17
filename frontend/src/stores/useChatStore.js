@@ -2,6 +2,7 @@
 import { chatService } from '@/services/chatService';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useAuthStore } from './useAuthStore';
 
 export const useChatStore = create(
     persist(
@@ -12,7 +13,7 @@ export const useChatStore = create(
             activeConversationId: null,
             conLoading: false,
             messageLoading: false,
-            sending: {},       // 🆕 { conversationId: boolean }
+            sending: {},       // { conversationId: boolean }
 
             // ==================== ACTIVE ====================
             setActiveConversationId: (id) => set({ activeConversationId: id }),
@@ -44,7 +45,7 @@ export const useChatStore = create(
 
             // ==================== FETCH MESSAGES ====================
             fetchMessages: async (conversationId, cursor = null) => {
-                if (!cursor && get().messages[conversationId]) return;
+                if (!cursor && get().cursors[conversationId] !== undefined) return;
 
                 try {
                     set({ messageLoading: true });
@@ -78,21 +79,25 @@ export const useChatStore = create(
 
             // ==================== HELPERS (private) ====================
             _replaceMessage: (conversationId, tempId, realMsg) => {
-                set((s) => ({
-                    messages: {
-                        ...s.messages,
-                        [conversationId]: (s.messages[conversationId] || []).map((m) =>
-                            m._id === tempId ? realMsg : m
-                        ),
-                    },
-                }));
+                set((s) => {
+                    const currentMessages = s.messages[conversationId] || [];
+                    const isExist = currentMessages.some((m) => m._id?.toString() === realMsg._id?.toString());
+
+                    return {
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: isExist
+                                ? currentMessages.filter((m) => m._id?.toString() !== tempId?.toString())
+                                : currentMessages.map((m) => (m._id?.toString() === tempId?.toString() ? realMsg : m)),
+                        },
+                    };
+                });
             },
 
-            // Cập nhật lastMessage + sort conversation lên top
             _bumpConversation: (conversationId, message, senderUserId) => {
                 set((s) => {
                     const updated = s.conversations.map((c) => {
-                        if (c._id !== conversationId) return c;
+                        if (c._id?.toString() !== conversationId?.toString()) return c;
                         return {
                             ...c,
                             lastMessageAt: message.createdAt,
@@ -103,17 +108,30 @@ export const useChatStore = create(
                                 senderId: senderUserId,
                                 createdAt: message.createdAt,
                             },
+                            // Gửi tin mới -> Chỉ người gửi đã xem
+                            seenBy: [senderUserId?.toString()],
                         };
                     });
-                    updated.sort(
-                        (a, b) =>
-                            new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)
-                    );
+                    updated.sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
                     return { conversations: updated };
                 });
             },
 
-            // Khi gửi fail — kéo lastMessage về tin thật cuối cùng còn lại
+            updateUserLastActiveAt: (userId, lastActiveAt) => {
+                set((state) => ({
+                    conversations: state.conversations.map((c) => ({
+                        ...c,
+                        participants: c.participants.map((p) => {
+                            const pId = p._id || p.userId?._id;
+                            if (pId?.toString() === userId?.toString()) {
+                                return { ...p, lastActiveAt };
+                            }
+                            return p;
+                        })
+                    }))
+                }));
+            },
+
             _syncConversationLastMessage: (conversationId) => {
                 const list = get().messages[conversationId] || [];
                 const realList = list.filter((m) => !m._pending && !m._failed);
@@ -123,26 +141,27 @@ export const useChatStore = create(
                 get()._bumpConversation(conversationId, last, senderId);
             },
 
-            // ==================== SEND MESSAGE 🆕 ====================
+            // ==================== SEND MESSAGE ====================
             sendMessage: async ({ conversationId, type, content, imgURL, senderUser }) => {
                 if (!conversationId || !senderUser) return;
                 const trimmed = content?.trim() ?? "";
                 if (!trimmed && !imgURL) return;
-                if (get().sending[conversationId]) return; // chống double-click
+                if (get().sending[conversationId]) return;
 
                 const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
                 const tempMsg = {
                     _id: tempId,
                     conversationId,
-                    senderId: senderUser, // full object, khớp shape messages đã fetch
+                    senderId: senderUser,
                     content: trimmed,
                     imgURL: imgURL ?? null,
+                    type: imgURL ? "image" : "text",
                     createdAt: new Date().toISOString(),
                     _pending: true,
                     _failed: false,
                 };
 
-                // 1) Optimistic: append + set sending + bump conversation
+                // 1) Optimistic UI
                 set((s) => ({
                     messages: {
                         ...s.messages,
@@ -152,7 +171,7 @@ export const useChatStore = create(
                 }));
                 get()._bumpConversation(conversationId, tempMsg, senderUser._id);
 
-                // 2) API
+                // 2) Gọi API
                 try {
                     const realMsg = await chatService.sendMessage({
                         conversationId,
@@ -160,13 +179,12 @@ export const useChatStore = create(
                         content: trimmed,
                         imgURL,
                     });
-                    // ghép senderUser để giữ shape giống messages đã fetch
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
+
+                    // Chỉ thay thế tin nhắn, không gọi lại _bumpConversation để tránh đè mất seenBy từ Socket
                     get()._replaceMessage(conversationId, tempId, merged);
-                    get()._bumpConversation(conversationId, merged, senderUser._id);
                 } catch (err) {
-                    console.error("Gửi tin nhắn thất bại:", err.response?.data || err);
-                    // mark failed — giữ lại trong list để user "Gửi lại"
+                    console.error("Gửi tin nhắn thất bại:", err);
                     set((s) => ({
                         messages: {
                             ...s.messages,
@@ -175,14 +193,102 @@ export const useChatStore = create(
                             ),
                         },
                     }));
-                    // kéo lastMessage của conversation về tin thật gần nhất
                     get()._syncConversationLastMessage(conversationId);
                 } finally {
                     set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
                 }
             },
 
-            // ==================== RETRY FAILED MESSAGE 🆕 ====================
+            // ==================== RECEIVE MESSAGE (REALTIME) ====================
+            receiveMessage: (message) => {
+                const { conversationId, senderId } = message;
+                const currentUser = useAuthStore.getState().user;
+                const currentUserId = currentUser?._id?.toString();
+                const isMyMessage = senderId?._id?.toString() === currentUserId;
+                const activeId = get().activeConversationId?.toString();
+                const isChatOpen = activeId === conversationId?.toString();
+
+                set((state) => {
+                    const currentMessages = state.messages[conversationId] || [];
+                    if (currentMessages.some((m) => m._id?.toString() === message._id?.toString())) return state;
+
+                    const newMessages = {
+                        ...state.messages,
+                        [conversationId]: [...currentMessages, message],
+                    };
+
+                    const updatedConversations = state.conversations.map((c) => {
+                        if (c._id?.toString() !== conversationId?.toString()) return c;
+
+                        const currentUnread = c.unreadCounts?.[currentUserId] || 0;
+                        const newUnread = (!isMyMessage && !isChatOpen) ? currentUnread + 1 : 0;
+
+                        return {
+                            ...c,
+                            lastMessageAt: message.createdAt,
+                            lastMessage: {
+                                _id: message._id,
+                                content: message.content,
+                                type: message.type,
+                                senderId: message.senderId,
+                                createdAt: message.createdAt,
+                            },
+                            // Khi có tin nhắn mới, reset seenBy về người gửi
+                            seenBy: [senderId?._id?.toString() || senderId?.toString()],
+                            unreadCounts: {
+                                ...c.unreadCounts,
+                                [currentUserId]: newUnread
+                            }
+                        };
+                    }).sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+
+                    return { messages: newMessages, conversations: updatedConversations };
+                });
+
+                if (isChatOpen && !isMyMessage) {
+                    get().markChatAsRead(conversationId);
+                }
+            },
+
+            updateConversationSeen: (conversationId, seenBy) => {
+                set((state) => ({
+                    conversations: state.conversations.map((c) =>
+                        c._id?.toString() === conversationId?.toString()
+                            ? { ...c, seenBy: seenBy.map(id => id.toString()) }
+                            : c
+                    )
+                }));
+            },
+
+            markChatAsRead: async (conversationId) => {
+                const currentUserId = useAuthStore.getState().user?._id?.toString();
+                if (!currentUserId) return;
+
+                set((state) => ({
+                    conversations: state.conversations.map((c) => {
+                        if (c._id?.toString() !== conversationId?.toString()) return c;
+
+                        const currentSeen = c.seenBy?.map(id => id.toString()) || [];
+                        const newSeenBy = currentSeen.includes(currentUserId)
+                            ? currentSeen
+                            : [...currentSeen, currentUserId];
+
+                        return {
+                            ...c,
+                            seenBy: newSeenBy,
+                            unreadCounts: { ...c.unreadCounts, [currentUserId]: 0 }
+                        };
+                    })
+                }));
+
+                try {
+                    await chatService.markAsRead(conversationId);
+                } catch (error) {
+                    console.error("Lỗi markAsRead:", error);
+                }
+            },
+
+            // ==================== RETRY FAILED MESSAGE ====================
             retryMessage: async ({ conversationId, tempId, type, senderUser }) => {
                 if (!conversationId || !senderUser) return;
                 if (get().sending[conversationId]) return;
@@ -191,7 +297,6 @@ export const useChatStore = create(
                 const temp = list.find((m) => m._id === tempId);
                 if (!temp) return;
 
-                // reset về pending
                 set((s) => ({
                     messages: {
                         ...s.messages,
@@ -227,13 +332,12 @@ export const useChatStore = create(
                 }
             },
 
-            // ==================== SEND IMAGE MESSAGE  ====================
+            // ==================== SEND IMAGE MESSAGE ====================
             sendImageMessage: async ({ conversationId, type, file, senderUser }) => {
                 if (!conversationId || !senderUser || !file) return;
                 if (get().sending[conversationId]) return;
 
                 const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                // Tạo URL ảo để hiển thị ngay lập tức
                 const localUrl = URL.createObjectURL(file);
 
                 const tempMsg = {
@@ -248,7 +352,6 @@ export const useChatStore = create(
                     _failed: false,
                 };
 
-                // 1) Đẩy ảnh (local) lên khung chat ngay lập tức
                 set((s) => ({
                     messages: {
                         ...s.messages,
@@ -259,10 +362,8 @@ export const useChatStore = create(
                 get()._bumpConversation(conversationId, tempMsg, senderUser._id);
 
                 try {
-                    // 2) Upload ảnh lên Cloudinary
                     const realUrl = await chatService.uploadImage(file);
 
-                    // 3) Gửi tin nhắn chứa URL thật vào DB
                     const realMsg = await chatService.sendMessage({
                         conversationId,
                         type,
@@ -272,15 +373,11 @@ export const useChatStore = create(
 
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
 
-                    // 4) Thay thế ảnh local bằng ảnh thật
                     get()._replaceMessage(conversationId, tempId, merged);
-                    get()._bumpConversation(conversationId, merged, senderUser._id);
 
-                    // Giải phóng bộ nhớ (chỉ gọi khi thành công)
                     URL.revokeObjectURL(localUrl);
                 } catch (err) {
                     console.error("Gửi ảnh thất bại:", err.response?.data || err);
-                    // Đánh dấu lỗi, giữ nguyên localUrl để user vẫn thấy ảnh bị lỗi
                     set((s) => ({
                         messages: {
                             ...s.messages,
@@ -294,7 +391,6 @@ export const useChatStore = create(
                     set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
                 }
             },
-
         }),
         {
             name: "chat-storage",

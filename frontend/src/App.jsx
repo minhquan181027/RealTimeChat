@@ -20,7 +20,7 @@ function App() {
       connectSocket();
     }
     return () => disconnectSocket();
-  }, [accessToken]);
+  }, [accessToken, connectSocket, disconnectSocket]);
   return (
     <div>
       <Toaster richColors />

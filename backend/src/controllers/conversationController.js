@@ -2,8 +2,9 @@ import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { getIO } from "../socket/index.js";
 
-const USER_FIELDS = "_id displayName avatarUrl";
+const USER_FIELDS = "_id displayName avatarUrl lastActiveAt";
 
 const populateOptions = [
     { path: "participants.userId", select: USER_FIELDS },
@@ -11,7 +12,8 @@ const populateOptions = [
     { path: "lastMessage.senderId", select: USER_FIELDS },
 ];
 
-// Chuẩn hóa 1 conversation (document hoặc object lean) về cùng một shape
+
+
 const formatConversation = (conversation) => {
     const c = typeof conversation.toObject === "function"
         ? conversation.toObject({ flattenMaps: true })
@@ -19,11 +21,14 @@ const formatConversation = (conversation) => {
 
     return {
         ...c,
-        // [{ userId: {...}, joinAt }] -> [{ _id, displayName, avataUrl, joinAt }]
+
+        seenBy: (c.seenBy || []).map((u) => u._id ? u._id.toString() : u.toString()),
+
         participants: c.participants.map((p) => ({
             _id: p.userId?._id,
             displayName: p.userId?.displayName,
             avatarUrl: p.userId?.avatarUrl,
+            lastActiveAt: p.userId?.lastActiveAt,
             joinAt: p.joinAt,
         })),
     };
@@ -198,6 +203,46 @@ export const getMessages = async (req, res) => {
         return res.status(200).json({ messages, nextCursor });
     } catch (error) {
         console.error("Lỗi khi lấy tin nhắn.", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+
+export const markAsRead = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user._id;
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
+        }
+
+        // 1. Set unreadCounts = 0
+        const currentUnread = conversation.unreadCounts || new Map();
+        currentUnread.set(userId.toString(), 0);
+        conversation.unreadCounts = currentUnread;
+
+        // 2. Thêm userId vào mảng seenBy an toàn (addToSet tự động chống trùng)
+        conversation.seenBy.addToSet(userId);
+
+        await conversation.save();
+
+        // 3. Bắn Socket
+        const io = getIO();
+        // Ép kiểu toàn bộ ID trong seenBy thành String để Frontend dễ xử lý
+        const seenByStrings = conversation.seenBy.map(id => id.toString());
+
+        conversation.participants.forEach((p) => {
+            io.to(p.userId.toString()).emit("conversation_seen", {
+                conversationId,
+                seenBy: seenByStrings,
+            });
+        });
+
+        return res.status(200).json({ message: "Đã đánh dấu đã đọc" });
+    } catch (error) {
+        console.error("Lỗi markAsRead:", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { toast } from "sonner";
 import { authService } from "@/services/authService";
 import { useChatStore } from "./useChatStore";
+import { useSocketStore } from "./useSocketStore";
 
 export const useAuthStore = create((set, get) => ({
     accessToken: null,
@@ -40,7 +41,7 @@ export const useAuthStore = create((set, get) => ({
 
             const data = await authService.signIn(email, password);
             const accessToken = data.accessToken;
-            
+
             useChatStore.getState().reset();
 
             get().setAccessToken(accessToken);
@@ -88,6 +89,11 @@ export const useAuthStore = create((set, get) => ({
         } catch (error) {
             console.error(error);
             toast.error("Lỗi logout");
+        } finally {
+
+            get().clearState();
+            useSocketStore.getState().disconnectSocket();
+
         }
     },
     fetchMe: async () => {

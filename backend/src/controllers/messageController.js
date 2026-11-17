@@ -2,6 +2,7 @@ import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import cloudinary from 'cloudinary';
 import multer from 'multer';
+import { getIO } from "../socket/index.js";
 
 cloudinary.v2.config();
 
@@ -74,7 +75,7 @@ export const sendDirectMessage = async (req, res) => {
             }
         }
 
-        // 🆕 Tự động xác định type
+
         let messageType = "text";
         if (imgURL) messageType = "image";
 
@@ -83,11 +84,21 @@ export const sendDirectMessage = async (req, res) => {
             senderId,
             content,
             imgURL,
-            type: messageType, // 🆕 Truyền type vào
+            type: messageType,
         });
 
         updateConversationAfterNewMessage(conversation, message, senderId);
         await conversation.save();
+
+        // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
+        await message.populate("senderId", "displayName avatarUrl");
+
+        // 🆕 Bắn Socket cho tất cả thành viên trong cuộc trò chuyện
+        const io = getIO();
+        conversation.participants.forEach((p) => {
+            // Gửi tới "phòng" của từng người
+            io.to(p.userId.toString()).emit("new_message", message);
+        });
 
         return res.status(201).json({ message });
     } catch (error) {
@@ -129,11 +140,21 @@ export const sendGroupMessage = async (req, res) => {
             senderId,
             content,
             imgURL,
-            type: messageType, // 🆕 Truyền type vào
+            type: messageType,
         });
 
         updateConversationAfterNewMessage(conversation, message, senderId);
         await conversation.save();
+
+        // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
+        await message.populate("senderId", "displayName avatarUrl");
+
+        // 🆕 Bắn Socket cho tất cả thành viên trong cuộc trò chuyện
+        const io = getIO();
+        conversation.participants.forEach((p) => {
+            // Gửi tới "phòng" của từng người
+            io.to(p.userId.toString()).emit("new_message", message);
+        });
 
         return res.status(201).json({ message });
     } catch (error) {

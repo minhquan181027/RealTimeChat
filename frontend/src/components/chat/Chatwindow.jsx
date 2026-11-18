@@ -5,11 +5,14 @@ import { cn } from "cn";
 import ChatInput from "./ChatInput";
 import ChatWindowHeader from "./ChatWindowHeader";
 import MessageItem from "./MessageItem";
-import { useAuthStore } from "@/stores/useAuthStore"; // 🆕 Import AuthStore
+import { useAuthStore } from "@/stores/useAuthStore";
 
 const SCROLL_THRESHOLD = 80;
 
-const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending, uploading, onLoadMore, hasMore, loading, className }) => {
+const ChatWindow = ({
+    chat, messages, onBack, onSend, onRetry, onUpload, onAccept, onDecline,
+    sending, uploading, onLoadMore, hasMore, loading, className,
+}) => {
     const listRef = useRef(null);
     const prevScrollHeightRef = useRef(0);
     const firstLoadRef = useRef(true);
@@ -18,8 +21,13 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
 
     const [selectedImage, setSelectedImage] = useState(null);
 
-    // 🆕 Lấy currentUser từ Store để dùng cho logic "Đã xem"
     const currentUser = useAuthStore((state) => state.user);
+
+    // Những người đã xem (không tính bản thân)
+    const seenByOthers = (chat?.seenBy || []).filter(
+        (id) => id?.toString() !== currentUser?._id?.toString()
+    );
+    const seenCount = seenByOthers.length;
 
     const handleImageLoad = useCallback(() => {
         if (isStickyBottomRef.current && listRef.current) {
@@ -77,10 +85,6 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
     }, [messages]);
 
     // 3) Avatar "đã xem" hiện ra làm list cao thêm -> kéo xuống cuối nếu đang ở đáy
-    const seenCount = (chat?.seenBy || []).filter(
-        (id) => id?.toString() !== currentUser?._id?.toString()
-    ).length;
-
     useLayoutEffect(() => {
         const el = listRef.current;
         if (!el || !isStickyBottomRef.current) return;
@@ -117,26 +121,18 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
 
                 {messages.map((m, index) => {
                     const isLastMessage = index === messages.length - 1;
-
-                    const seenByOthers = (chat.seenBy || []).filter(
-                        (id) => id?.toString() !== currentUser?._id?.toString()
-                    );
-
-                    // Điều kiện hiện Avatar đã xem
-                    const showSeenAvatar = isLastMessage && m.mine && seenByOthers.length > 0;
+                    const showSeenAvatar = isLastMessage && m.mine && seenCount > 0;
 
                     return (
                         <Fragment key={m.id}>
-                            {/* 1. Thanh phân cách thời gian */}
                             {m.dividerText && (
-                                <div className="flex justify-center my-4">
-                                    <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                <div className="my-4 flex justify-center">
+                                    <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                                         {m.dividerText}
                                     </span>
                                 </div>
                             )}
 
-                            {/* 2. 🆕 RENDER TIN NHẮN (Phần này bị thiếu lúc nãy) */}
                             <MessageItem
                                 m={m}
                                 chat={chat}
@@ -145,9 +141,8 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
                                 onImageLoad={handleImageLoad}
                             />
 
-                            {/* 3. Hiển thị Avatar người đã xem */}
                             {showSeenAvatar && (
-                                <div className="flex justify-end pr-2 mt-0.5">
+                                <div className="mt-0.5 flex justify-end pr-2">
                                     {!chat.isGroup ? (
                                         <img
                                             src={chat.avatar}
@@ -157,16 +152,20 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
                                         />
                                     ) : (
                                         <div className="flex -space-x-1">
-                                            {seenByOthers.slice(0, 3).map((item, idx) => {
-                                                // 🆕 Bóc tách ID
+                                            {seenByOthers.slice(0, 3).map((item) => {
                                                 const seenerId = item?._id || item;
-                                                const participant = chat.participants?.find(p => p._id?.toString() === seenerId?.toString());
+                                                const participant = chat.participants?.find(
+                                                    (p) => p._id?.toString() === seenerId?.toString()
+                                                );
                                                 return (
                                                     <img
                                                         key={seenerId}
-                                                        src={participant?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(participant?.displayName || 'U')}&background=random`}
+                                                        src={
+                                                            participant?.avatarUrl ||
+                                                            `https://ui-avatars.com/api/?name=${encodeURIComponent(participant?.displayName || "U")}&background=random`
+                                                        }
                                                         alt="Seen"
-                                                        className="size-[14px] rounded-full ring-1 ring-background object-cover"
+                                                        className="size-[14px] rounded-full object-cover ring-1 ring-background"
                                                         title="Đã xem"
                                                     />
                                                 );
@@ -180,6 +179,31 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
                 })}
             </div>
 
+            {/* Banner cho cuộc trò chuyện đang chờ */}
+            {chat.myStatus === "pending" && (
+                <div className="flex items-center justify-between gap-3 border-t bg-background px-4 py-3">
+                    <p className="text-sm text-muted-foreground">
+                        {chat.isGroup
+                            ? "Bạn được thêm vào nhóm này. Chấp nhận để tham gia hoặc xóa."
+                            : `${chat.name} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính.`}
+                    </p>
+                    <div className="flex shrink-0 gap-2">
+                        <button
+                            onClick={onDecline}
+                            className="rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80"
+                        >
+                            Xóa
+                        </button>
+                        <button
+                            onClick={onAccept}
+                            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                        >
+                            Chấp nhận
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <ChatInput onSend={onSend} onUpload={onUpload} disabled={inputDisabled} />
 
             {/* Modal xem ảnh */}
@@ -190,7 +214,7 @@ const ChatWindow = ({ chat, messages, onBack, onSend, onRetry, onUpload, sending
                 >
                     <button
                         onClick={() => setSelectedImage(null)}
-                        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+                        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
                     >
                         <X className="size-6" />
                     </button>

@@ -1,4 +1,5 @@
 import Conversation from "../models/Conversation.js";
+import { findNonFriendIds } from "../middlewares/friendMiddleware.js";
 import Message from "../models/Message.js";
 import cloudinary from 'cloudinary';
 import multer from 'multer';
@@ -22,10 +23,24 @@ const updateConversationAfterNewMessage = (conversation, message, senderId) => {
         seenBy: [senderId],
     });
 
+    // Người gửi trả lời thì cuộc trò chuyện thành chính thức
+    const sender = conversation.participants.find(
+        (p) => p.userId.toString() === senderId.toString()
+    );
+    if (sender && sender.status !== "accepted") sender.status = "accepted";
+
     conversation.participants.forEach((p) => {
         const memberId = p.userId.toString();
         const prev = conversation.unreadCounts.get(memberId) || 0;
         conversation.unreadCounts.set(memberId, memberId === senderId.toString() ? 0 : prev + 1);
+    });
+};
+
+const emitNewMessage = (conversation, message) => {
+    const io = getIO();
+    conversation.participants.forEach((p) => {
+        if (p.status === "declined") return;
+        io.to(p.userId.toString()).emit("new_message", message);
     });
 };
 
@@ -66,9 +81,13 @@ export const sendDirectMessage = async (req, res) => {
             });
 
             if (!conversation) {
+                const nonFriends = await findNonFriendIds(senderId, [recipientId]);
                 conversation = await Conversation.create({
                     type: "direct",
-                    participants: [{ userId: senderId }, { userId: recipientId }],
+                    participants: [
+                        { userId: senderId, status: "accepted" },
+                        { userId: recipientId, status: nonFriends.size ? "pending" : "accepted" },
+                    ],
                     lastMessageAt: new Date(),
                     unreadCounts: new Map(),
                 });
@@ -93,12 +112,7 @@ export const sendDirectMessage = async (req, res) => {
         // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
         await message.populate("senderId", "displayName avatarUrl");
 
-        // 🆕 Bắn Socket cho tất cả thành viên trong cuộc trò chuyện
-        const io = getIO();
-        conversation.participants.forEach((p) => {
-            // Gửi tới "phòng" của từng người
-            io.to(p.userId.toString()).emit("new_message", message);
-        });
+        emitNewMessage(conversation, message);
 
         return res.status(201).json({ message });
     } catch (error) {
@@ -149,12 +163,7 @@ export const sendGroupMessage = async (req, res) => {
         // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
         await message.populate("senderId", "displayName avatarUrl");
 
-        // 🆕 Bắn Socket cho tất cả thành viên trong cuộc trò chuyện
-        const io = getIO();
-        conversation.participants.forEach((p) => {
-            // Gửi tới "phòng" của từng người
-            io.to(p.userId.toString()).emit("new_message", message);
-        });
+        emitNewMessage(conversation, message);
 
         return res.status(201).json({ message });
     } catch (error) {

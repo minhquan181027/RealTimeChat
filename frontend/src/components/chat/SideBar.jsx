@@ -1,5 +1,5 @@
 // src/components/chat/AppSidebar.jsx
-import { Settings, User, Globe, LogOut } from "lucide-react";
+import { Settings, User, Globe, LogOut, MessageSquare, Users, Inbox } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -9,18 +9,26 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NAV_TOP } from "@/components/data/Chatdata";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useChatStore } from "@/stores/useChatStore";
 
-// Thanh icon dọc bên trái (chỉ hiện trên PC, shadcn tự ẩn trên mobile)
-const AppSidebar = () => {
+const NAV_TOP = [
+    { key: "main", icon: MessageSquare, label: "Tin nhắn" },
+    { key: "pending", icon: Inbox, label: "Tin nhắn đang chờ" },
+    { key: "contacts", icon: Users, label: "Danh bạ" },
+    { key: "profile", icon: User, label: "Cá nhân" },
+];
 
+const AppSidebar = ({ view, onChangeView }) => {
     const signOut = useAuthStore((state) => state.signOut);
+    const pendingCount = useChatStore(
+        (s) => s.conversations.filter((c) => c.myStatus === "pending").length
+    );
 
     const handleLogout = async () => {
-        console.log("đã click logout");
         await signOut();
     };
+
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader className="items-center py-4">
@@ -31,14 +39,24 @@ const AppSidebar = () => {
 
             <SidebarContent className="items-center px-1 pt-2">
                 <SidebarMenu className="gap-2">
-                    {NAV_TOP.map(({ icon: Icon, label, active }) => (
-                        <SidebarMenuItem key={label}>
+                    {NAV_TOP.map(({ key, icon: Icon, label }) => (
+                        <SidebarMenuItem key={key}>
                             <SidebarMenuButton
-                                isActive={active}
+                                isActive={view === key}
                                 tooltip={label}
+                                onClick={() => {
+                                    if (key === "main" || key === "pending") onChangeView?.(key);
+                                }}
                                 className="justify-center [&_svg]:size-5!"
                             >
-                                <Icon />
+                                <span className="relative">
+                                    <Icon />
+                                    {key === "pending" && pendingCount > 0 && (
+                                        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                                            {pendingCount > 99 ? "99+" : pendingCount}
+                                        </span>
+                                    )}
+                                </span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     ))}

@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const participantSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    joinAt: { type: Date, default: Date.now }
+    joinAt: { type: Date, default: Date.now },
+    status: { type: String, enum: ["accepted", "pending", "declined"], default: "accepted" },
 }, { _id: false });
 
 const groupSchema = new mongoose.Schema({
@@ -15,7 +16,7 @@ const lastMessageSchema = new mongoose.Schema({
     content: { type: String, default: null },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: null },
-  
+
     type: { type: String, enum: ["text", "image", "video", "file"], default: "text" }
 }, { _id: false });
 

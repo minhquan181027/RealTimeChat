@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { type } from "os";
+
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -34,11 +34,11 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    avataUrl: {
+    avatarUrl: {
         type: String,
 
     },
-    avataId: {
+    avatarId: {
         type: String,
 
     },

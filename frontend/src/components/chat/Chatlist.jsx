@@ -1,14 +1,38 @@
 // src/components/chat/ChatList.jsx
-import { BellOff } from "lucide-react";
+import { BellOff, MessageSquare, Users, User } from "lucide-react";
 import { cn } from "cn";
-import { NAV_TOP } from "@/components/data/Chatdata";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useSocketStore } from "@/stores/useSocketStore";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
 
-const ChatList = ({ activeId, onSelect, className }) => {
+const NAV_TOP = [
+    { icon: MessageSquare, label: "Tin nhắn", active: true },
+    { icon: Users, label: "Danh bạ" },
+    { icon: User, label: "Cá nhân" },
+];
+
+const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return `${Math.floor((now - date) / (1000 * 60))} phút`;
+    if (diffInHours < 24 && date.getDate() === now.getDate()) return `${diffInHours} giờ`;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
+
+    const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+    if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return days[date.getDay()];
+
+    return `${date.getDate()}/${date.getMonth() + 1}`;
+};
+
+const ChatList = ({ activeId, onSelect, onPickUser, view = "main", onChangeView, className }) => {
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const onlineUsers = useSocketStore((state) => state.onlineUsers);
@@ -23,24 +47,11 @@ const ChatList = ({ activeId, onSelect, className }) => {
         );
     }
 
-    const formatTime = (dateString) => {
-        if (!dateString) return "";
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-
-        if (diffInHours < 1) return `${Math.floor((now - date) / (1000 * 60))} phút`;
-        if (diffInHours < 24 && date.getDate() === now.getDate()) return `${diffInHours} giờ`;
-
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
-
-        const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-        if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return days[date.getDay()];
-
-        return `${date.getDate()}/${date.getMonth() + 1}`;
-    };
+    // Tin chờ: myStatus === "pending". Cuộc trò chuyện cũ không có myStatus -> coi như chính thức
+    const pendingCount = conversations.filter((c) => c.myStatus === "pending").length;
+    const visible = conversations.filter((c) =>
+        view === "pending" ? c.myStatus === "pending" : c.myStatus !== "pending"
+    );
 
     const getConversationInfo = (conversation) => {
         let name;
@@ -66,29 +77,24 @@ const ChatList = ({ activeId, onSelect, className }) => {
         if (conversation.lastMessage) {
             const { type, content, senderId } = conversation.lastMessage;
 
-            // Xử lý hiển thị text dựa vào type hoặc content
             if (type === "image") {
                 lastMessageText = "[Hình ảnh]";
             } else if (type === "video") {
                 lastMessageText = "[Video]";
             } else {
-                lastMessageText = content || "[Tin nhắn]"; // Fallback nếu rỗng
+                lastMessageText = content || "[Tin nhắn]";
             }
 
-            // 🆕 SỬA LỖI isMe: Xử lý được cả trường hợp senderId là Object, String hay ObjectId
             const senderIdStr = senderId?._id?.toString() || senderId?.toString() || senderId;
-            const currentIdStr = currentUser?._id?.toString();
-            const isMe = senderIdStr === currentIdStr;
-
-            // Tên người gửi (nếu là group và không phải mình)
+            const isMe = senderIdStr === currentUser?._id?.toString();
             const senderName = senderId?.userId?.displayName || senderId?.displayName;
 
-            if (conversation.type === "group") {
-                if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
-                else if (senderName) lastMessageText = `${senderName}: ${lastMessageText}`;
-            } else {
-                if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
+            if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
+            else if (conversation.type === "group" && senderName) {
+                lastMessageText = `${senderName}: ${lastMessageText}`;
             }
+        } else if (conversation.type === "group") {
+            lastMessageText = "Nhóm mới được tạo";
         }
 
         const unreadCount =
@@ -96,36 +102,47 @@ const ChatList = ({ activeId, onSelect, className }) => {
             conversation.unreadCount ??
             0;
 
-        const hasUnread = unreadCount > 0;
-        const isMuted = conversation.isMuted || false;
-
-        // 👇 TẠM THỜI FAKE — thay bằng presence store sau
-        const isOnline = conversation.type === "direct" && onlineUsers.includes(otherUserId);
-
         return {
             name,
             avatar,
             lastMessageText,
-            hasUnread,
+            hasUnread: unreadCount > 0,
             unreadCount,
-            isMuted,
-            isOnline,
+            isMuted: conversation.isMuted || false,
+            isOnline: conversation.type === "direct" && onlineUsers.includes(otherUserId),
             time: formatTime(conversation.lastMessageAt || conversation.updatedAt),
         };
     };
 
     return (
         <div className={cn("flex h-full w-full shrink-0 flex-col border-r bg-background md:w-[400px]", className)}>
+            <ChatListHeader
+                onPickUser={onPickUser}
+                title={view === "pending" ? "Tin nhắn đang chờ" : "Đoạn chat"}
+            />
 
-            <ChatListHeader />
+            {/* Chuyển view trên mobile (sidebar chỉ có trên PC) */}
+            <div className="px-4 pb-2 md:hidden">
+                {view === "pending" ? (
+                    <button onClick={() => onChangeView?.("main")} className="text-sm text-primary">
+                        ← Quay lại đoạn chat
+                    </button>
+                ) : (
+                    pendingCount > 0 && (
+                        <button onClick={() => onChangeView?.("pending")} className="text-sm text-primary">
+                            Tin nhắn đang chờ ({pendingCount})
+                        </button>
+                    )
+                )}
+            </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-                {conversations.length === 0 ? (
+                {visible.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Chưa có cuộc trò chuyện nào
+                        {view === "pending" ? "Không có tin nhắn đang chờ" : "Chưa có cuộc trò chuyện nào"}
                     </div>
                 ) : (
-                    conversations.map((c) => {
+                    visible.map((c) => {
                         const { name, avatar, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time } =
                             getConversationInfo(c);
 
@@ -138,7 +155,6 @@ const ChatList = ({ activeId, onSelect, className }) => {
                                     activeId === c._id && "bg-blue-50 md:bg-primary/10"
                                 )}
                             >
-                                {/* 👇 Avatar + StatusBadge */}
                                 <div className="relative size-12 shrink-0">
                                     <img
                                         src={avatar}
@@ -166,7 +182,7 @@ const ChatList = ({ activeId, onSelect, className }) => {
                                         <span
                                             className={cn(
                                                 "flex shrink-0 items-center gap-1 text-xs",
-                                                hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+                                                hasUnread ? "font-medium text-primary" : "text-muted-foreground"
                                             )}
                                         >
                                             {isMuted && <BellOff className="size-3.5" />}

@@ -17,11 +17,25 @@ export const chatService = {
         });
         return res.data; // { messages, nextCursor }
     },
+
+    sendFirstMessage: async ({ recipientId, content }) => {
+        const res = await api.post("/message/direct", { recipientId, content });
+        return res.data.message;
+    },
+
     sendMessage: async ({ conversationId, type, content, imgURL }) => {
         console.log("🚀 PAYLOAD GỬI ĐI:", { conversationId, type, content, imgURL });
         const url = type === "group" ? "/message/group" : "/message/direct";
         const res = await api.post(url, { conversationId, content, imgURL });
         return res.data.message; // backend trả { message }
+    },
+    acceptConversation: async (conversationId) => {
+        const res = await api.put(`/conversation/${conversationId}/accept`);
+        return res.data;
+    },
+    declineConversation: async (conversationId) => {
+        const res = await api.put(`/conversation/${conversationId}/decline`);
+        return res.data;
     },
 
     uploadImage: async (file) => {

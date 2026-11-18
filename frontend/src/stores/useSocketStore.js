@@ -68,6 +68,13 @@ export const useSocketStore = create((set, get) => ({
         socket.on("conversation_seen", (data) => {
             useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
         });
+        socket.on("conversation_new", () => {
+            useChatStore.getState().fetchConversations();
+        });
+
+        socket.on("conversation_status", ({ conversationId, status }) => {
+            useChatStore.getState()._setMyStatus(conversationId, status);
+        });
 
         socket.on("disconnect", () => {
             console.log("🔴 Mất kết nối socket");

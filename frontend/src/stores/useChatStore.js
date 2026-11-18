@@ -93,6 +93,20 @@ export const useChatStore = create(
                     };
                 });
             },
+            _setMyStatus: (conversationId, status) => {
+                set((s) => {
+                    const target = s.conversations.find(
+                        (c) => c._id?.toString() === conversationId?.toString()
+                    );
+                    if (!target || target.myStatus === status) return s;
+                    return {
+                        conversations:
+                            status === "declined"
+                                ? s.conversations.filter((c) => c !== target)
+                                : s.conversations.map((c) => (c === target ? { ...c, myStatus: status } : c)),
+                    };
+                });
+            },
 
             _bumpConversation: (conversationId, message, senderUserId) => {
                 set((s) => {
@@ -141,6 +155,25 @@ export const useChatStore = create(
                 get()._bumpConversation(conversationId, last, senderId);
             },
 
+            // ==================== START DIRECT CHAT (chat nháp -> tin đầu tiên) ====================
+            startDirectChat: async ({ recipientId, content }) => {
+                const trimmed = content?.trim() ?? "";
+                if (!recipientId || !trimmed) return null;
+                if (get().sending["draft"]) return null;
+
+                set((s) => ({ sending: { ...s.sending, draft: true } }));
+                try {
+                    const msg = await chatService.sendFirstMessage({ recipientId, content: trimmed });
+                    await get().fetchConversations();
+                    return msg.conversationId?.toString() ?? null;
+                } catch (err) {
+                    console.error("Gửi tin đầu tiên thất bại:", err);
+                    return null;
+                } finally {
+                    set((s) => ({ sending: { ...s.sending, draft: false } }));
+                }
+            },
+
             // ==================== SEND MESSAGE ====================
             sendMessage: async ({ conversationId, type, content, imgURL, senderUser }) => {
                 if (!conversationId || !senderUser) return;
@@ -170,6 +203,7 @@ export const useChatStore = create(
                     sending: { ...s.sending, [conversationId]: true },
                 }));
                 get()._bumpConversation(conversationId, tempMsg, senderUser._id);
+                get()._setMyStatus(conversationId, "accepted"); // trả lời -> lên chính thức
 
                 // 2) Gọi API
                 try {
@@ -207,6 +241,12 @@ export const useChatStore = create(
                 const isMyMessage = senderId?._id?.toString() === currentUserId;
                 const activeId = get().activeConversationId?.toString();
                 const isChatOpen = activeId === conversationId?.toString();
+                // Cuộc trò chuyện mới chưa có trong store (người lạ nhắn lần đầu, bị thêm vào nhóm)
+                const exists = get().conversations.some((c) => c._id?.toString() === conversationId?.toString());
+                if (!exists) {
+                    get().fetchConversations();
+                    return;
+                }
 
                 set((state) => {
                     const currentMessages = state.messages[conversationId] || [];
@@ -263,6 +303,8 @@ export const useChatStore = create(
             markChatAsRead: async (conversationId) => {
                 const currentUserId = useAuthStore.getState().user?._id?.toString();
                 if (!currentUserId) return;
+                const conv = get().conversations.find((c) => c._id?.toString() === conversationId?.toString());
+                if (conv?.myStatus === "pending") return; // chưa chấp nhận thì không báo đã xem
 
                 set((state) => ({
                     conversations: state.conversations.map((c) => {
@@ -285,6 +327,27 @@ export const useChatStore = create(
                     await chatService.markAsRead(conversationId);
                 } catch (error) {
                     console.error("Lỗi markAsRead:", error);
+                }
+            },
+            acceptConversation: async (conversationId) => {
+                try {
+                    await chatService.acceptConversation(conversationId);
+                    get()._setMyStatus(conversationId, "accepted");
+                    return true;
+                } catch (error) {
+                    console.error("Lỗi accept:", error);
+                    return false;
+                }
+            },
+
+            declineConversation: async (conversationId) => {
+                try {
+                    await chatService.declineConversation(conversationId);
+                    get()._setMyStatus(conversationId, "declined");
+                    return true;
+                } catch (error) {
+                    console.error("Lỗi decline:", error);
+                    return false;
                 }
             },
 
@@ -360,6 +423,8 @@ export const useChatStore = create(
                     sending: { ...s.sending, [conversationId]: true },
                 }));
                 get()._bumpConversation(conversationId, tempMsg, senderUser._id);
+                get()._setMyStatus(conversationId, "accepted"); // trả lời -> lên chính thức
+
 
                 try {
                     const realUrl = await chatService.uploadImage(file);

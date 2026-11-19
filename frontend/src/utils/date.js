@@ -1,8 +1,4 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-
-
-
 export const getMessageDivider = (currentDate, prevDate) => {
     if (!prevDate) {
         // Tin nhắn đầu tiên luôn hiện full ngày tháng
@@ -55,4 +51,26 @@ export const formatLastSeen = (lastActiveAt) => {
     if (diffInDays < 7) return `Hoạt động ${diffInDays} ngày trước`;
 
     return `Hoạt động ${lastActive.toLocaleDateString("vi-VN")}`;
+};
+
+export const formatTime = (dateString, nowTime = Date.now()) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date(nowTime); // 🆕 Dùng thời gian được truyền vào
+
+    const diffInMins = Math.floor((now - date) / (1000 * 60));
+    if (diffInMins < 1) return "Bây giờ";
+    if (diffInMins < 60) return `${diffInMins} phút`;
+
+    const diffInHours = Math.floor(diffInMins / 60);
+    if (diffInHours < 24 && date.getDate() === now.getDate()) return `${diffInHours} giờ`;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
+
+    const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+    if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return days[date.getDay()];
+
+    return `${date.getDate()}/${date.getMonth() + 1}`;
 };

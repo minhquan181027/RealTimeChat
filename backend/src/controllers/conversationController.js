@@ -41,7 +41,7 @@ const formatConversation = (conversation, userId) => {
 
 export const createConversation = async (req, res) => {
     try {
-        const { type, name, memberIds } = req.body;
+        const { type, name, memberIds, avatarUrl } = req.body;
         const userId = req.user._id;
 
         if (!["direct", "group"].includes(type)) {
@@ -114,7 +114,7 @@ export const createConversation = async (req, res) => {
                         status: nonFriends.has(id) ? "pending" : "accepted",
                     })),
                 ],
-                group: { name: name.trim(), createdBy: userId },
+                group: { name: name.trim(), avatarUrl: avatarUrl || null, createdBy: userId },
                 lastMessageAt: new Date(),
             });
 
@@ -165,7 +165,7 @@ export const getMessages = async (req, res) => {
         // Chỉ thành viên mới được xem tin nhắn
         const isMember = await Conversation.exists({
             _id: conversationId,
-            "participants.userId": userId,
+            participants: { $elemMatch: { userId, status: { $ne: "declined" } } },
         });
         if (!isMember) {
             return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });

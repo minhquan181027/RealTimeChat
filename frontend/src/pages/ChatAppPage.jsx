@@ -156,6 +156,12 @@ const ChatAppPage = () => {
         setDraftUser(null);
     }, []);
 
+    const handleOpenConversation = useCallback((id) => {
+        setDraftUser(null);
+        setView("main");
+        setActiveId(id);
+    }, []);
+
     const handleAccept = useCallback(async () => {
         if (!activeId) return;
         const ok = await useChatStore.getState().acceptConversation(activeId);

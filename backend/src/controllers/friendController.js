@@ -1,7 +1,7 @@
 import Friend from "../models/Friend.js";
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
-import { json } from "express";
+
 
 export const sendFriendRequest = async (req, res) => {
     try {
@@ -69,7 +69,7 @@ export const acceptFriendRequest = async (req, res) => {
         await FriendRequest.findByIdAndDelete(requestId);
 
         const from = await User.findById(request.from)
-            .select("_id displayName avataUrl")
+            .select("_id displayName avatarUrl")
             .lean();
 
         return res.status(200).json({
@@ -77,7 +77,7 @@ export const acceptFriendRequest = async (req, res) => {
             newFriend: {
                 _id: from?._id,
                 displayName: from?.displayName,
-                avataUrl: from?.avataUrl,
+                avatarUrl: from?.avatarUrl,
             },
         });
     } catch (error) {
@@ -116,8 +116,8 @@ export const getAllFriends = async (req, res) => {
         const friendships = await Friend.find({
             $or: [{ userA: userId }, { userB: userId }],
         })
-            .populate("userA", "_id displayName avataUrl")
-            .populate("userB", "_id displayName avataUrl")
+            .populate("userA", "_id displayName avatarUrl")
+            .populate("userB", "_id displayName avatarUrl")
             .lean();
 
         if (!friendships.length) {
@@ -139,7 +139,7 @@ export const getAllFriends = async (req, res) => {
 export const getFriendRequests = async (req, res) => {
     try {
         const userId = req.user._id;
-        const populateFields = "_id username displayName avataUrl";
+        const populateFields = "_id username displayName avatarUrl";
 
         const [received, sent] = await Promise.all([
             FriendRequest.find({ to: userId }).populate("from", populateFields).lean(),

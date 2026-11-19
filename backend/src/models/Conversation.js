@@ -8,6 +8,7 @@ const participantSchema = new mongoose.Schema({
 
 const groupSchema = new mongoose.Schema({
     name: { type: String, trim: true },
+    avatarUrl: { type: String, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 }, { _id: false });
 

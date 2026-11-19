@@ -1,9 +1,10 @@
-// src/components/chat/ChatList.jsx
+import { useState, useEffect } from "react";
 import { BellOff, MessageSquare, Users, User } from "lucide-react";
 import { cn } from "cn";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useSocketStore } from "@/stores/useSocketStore";
+import { formatTime } from "@/utils/date";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
 
@@ -13,29 +14,16 @@ const NAV_TOP = [
     { icon: User, label: "Cá nhân" },
 ];
 
-const formatTime = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return `${Math.floor((now - date) / (1000 * 60))} phút`;
-    if (diffInHours < 24 && date.getDate() === now.getDate()) return `${diffInHours} giờ`;
-
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
-
-    const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-    if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return days[date.getDay()];
-
-    return `${date.getDate()}/${date.getMonth() + 1}`;
-};
-
-const ChatList = ({ activeId, onSelect, onPickUser, view = "main", onChangeView, className }) => {
+const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const onlineUsers = useSocketStore((state) => state.onlineUsers);
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     if (!conversations || !Array.isArray(conversations)) {
         return (
@@ -110,7 +98,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, view = "main", onChangeView,
             unreadCount,
             isMuted: conversation.isMuted || false,
             isOnline: conversation.type === "direct" && onlineUsers.includes(otherUserId),
-            time: formatTime(conversation.lastMessageAt || conversation.updatedAt),
+            time: formatTime(conversation.lastMessageAt || conversation.updatedAt, now),
         };
     };
 
@@ -118,7 +106,8 @@ const ChatList = ({ activeId, onSelect, onPickUser, view = "main", onChangeView,
         <div className={cn("flex h-full w-full shrink-0 flex-col border-r bg-background md:w-[400px]", className)}>
             <ChatListHeader
                 onPickUser={onPickUser}
-                title={view === "pending" ? "Tin nhắn đang chờ" : "Đoạn chat"}
+                onOpenConversation={onOpenConversation}
+                title={view === "pending" ? "Tin nhắn chờ" : "Đoạn chat"}
             />
 
             {/* Chuyển view trên mobile (sidebar chỉ có trên PC) */}

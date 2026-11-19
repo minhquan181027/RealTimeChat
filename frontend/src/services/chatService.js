@@ -18,6 +18,11 @@ export const chatService = {
         return res.data; // { messages, nextCursor }
     },
 
+    createConversation: async ({ type, memberIds, name, avatarUrl }) => {
+        const res = await api.post("/conversation", { type, memberIds, name, avatarUrl });
+        return res.data; // { conversation }
+    },
+
     sendFirstMessage: async ({ recipientId, content }) => {
         const res = await api.post("/message/direct", { recipientId, content });
         return res.data.message;
@@ -29,10 +34,12 @@ export const chatService = {
         const res = await api.post(url, { conversationId, content, imgURL });
         return res.data.message; // backend trả { message }
     },
+
     acceptConversation: async (conversationId) => {
         const res = await api.put(`/conversation/${conversationId}/accept`);
         return res.data;
     },
+
     declineConversation: async (conversationId) => {
         const res = await api.put(`/conversation/${conversationId}/decline`);
         return res.data;
@@ -46,6 +53,7 @@ export const chatService = {
         });
         return res.data.url; // Trả về URL từ Cloudinary
     },
+
     markAsRead: async (conversationId) => {
         const res = await api.put(`/conversation/${conversationId}/read`);
         return res.data;

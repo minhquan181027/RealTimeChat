@@ -58,4 +58,10 @@ export const chatService = {
         const res = await api.put(`/conversation/${conversationId}/read`);
         return res.data;
     },
+
+    // Thêm vào object chatService
+    getLiveKitToken: async (roomName) => {
+        const res = await api.post("/livekit/token", { roomName });
+        return res.data;
+    },
 }

@@ -37,6 +37,23 @@ export const initSocket = (httpServer) => {
 
         io.emit("user_online", userId);
 
+        socket.on("call_user", ({ targetUserIds, roomName, caller }) => {
+            // targetUserIds có thể là 1 người (direct) hoặc nhiều người (group)
+            targetUserIds.forEach(id => {
+                io.to(id).emit("incoming_call", { roomName, caller });
+            });
+        });
+
+        // Khi người nhận bấm "Nhận"
+        socket.on("accept_call", ({ targetUserId, roomName }) => {
+            io.to(targetUserId).emit("call_accepted", { roomName });
+        });
+
+        // Khi người nhận bấm "Từ chối" hoặc người gọi hủy
+        socket.on("reject_call", ({ targetUserId, roomName }) => {
+            io.to(targetUserId).emit("call_rejected", { roomName });
+        });
+
 
         socket.on("disconnect", async () => {
             console.log(`🔴 socket disconnected: ${socket.id}`);

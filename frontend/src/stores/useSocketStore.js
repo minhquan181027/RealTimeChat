@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import { useAuthStore } from './useAuthStore';
 import { useChatStore } from './useChatStore';
+import { useFriendStore } from './useFriendStore';
+import { useCallStore } from './useCallStore';
 
 const baseURL = import.meta.env.VITE_SOCKET_URL;
 
@@ -68,6 +70,16 @@ export const useSocketStore = create((set, get) => ({
         socket.on("conversation_seen", (data) => {
             useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
         });
+
+        socket.on("friend_request_new", () => {
+            useFriendStore.getState().fetchRequests();
+        });
+
+        socket.on("friend_accepted", () => {
+            useFriendStore.getState().fetchFriends();
+            useFriendStore.getState().fetchRequests();
+        });
+
         socket.on("conversation_new", () => {
             useChatStore.getState().fetchConversations();
         });
@@ -91,6 +103,20 @@ export const useSocketStore = create((set, get) => ({
                 new Audio('/notification.mp3').play();
             }
         });
+
+        socket.on("incoming_call", (data) => {
+            useCallStore.getState().receiveIncomingCall(data);
+        });
+
+        socket.on("call_accepted", () => {
+            useCallStore.getState().acceptCall();
+        });
+
+        socket.on("call_rejected", () => {
+            useCallStore.getState().endCall();
+            // Có thể hiện thông báo "Người dùng đã từ chối cuộc gọi"
+        });
+
     },
 
     disconnectSocket: () => {

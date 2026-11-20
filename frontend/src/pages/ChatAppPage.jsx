@@ -4,25 +4,38 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/chat/SideBar";
 import ChatList from "@/components/chat/ChatList";
 import ChatWindow from "@/components/chat/ChatWindow";
+import ContactsPage from "@/components/chat/ContactsPage";
+import CallModal from "@/components/chat/CallModal";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { getMessageDivider } from "@/utils/date";
 import { useSocketStore } from "@/stores/useSocketStore";
+import { useFriendStore } from "@/stores/useFriendStore";
+import { getMessageDivider } from "@/utils/date";
 
 const ChatAppPage = () => {
     const [activeId, setActiveId] = useState(null);
     const [uploading, setUploading] = useState(false);
     const uploadingRef = useRef(false); // chặn double-click upload
     const [draftUser, setDraftUser] = useState(null); // người đang mở chat nháp
-    const [view, setView] = useState("main"); // "main" | "pending"
+    const [view, setView] = useState("main"); // "main" | "pending" | "contacts"
 
     const { conversations, messages, cursors, messageLoading, fetchMessages } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const sending = useChatStore((s) => !!s.sending[activeId ?? "draft"]);
     const onlineUsers = useSocketStore((state) => state.onlineUsers);
 
+    const friends = useFriendStore((s) => s.friends);
+    const sentRequests = useFriendStore((s) => s.sent);
+    const receivedRequests = useFriendStore((s) => s.received);
+    const friendsLoaded = useFriendStore((s) => s.friendsLoaded);
+
     useEffect(() => {
         useChatStore.getState().fetchConversations();
+    }, []);
+
+    useEffect(() => {
+        useFriendStore.getState().fetchFriends();
+        useFriendStore.getState().fetchRequests();
     }, []);
 
     useEffect(() => {
@@ -64,12 +77,14 @@ const ChatAppPage = () => {
                 isGroup: false,
                 participants: [],
                 myStatus: "accepted",
+                otherUserId: draftUser._id.toString(),
             };
         }
 
         let name, avatar;
         let isOnline = false;
         let lastActiveAt = null;
+        let otherUserId = null;
 
         if (activeConversation.type === "group") {
             name = activeConversation.group?.name || "Nhóm không tên";
@@ -86,7 +101,7 @@ const ChatAppPage = () => {
             avatar = otherUserInfo?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 
-            const otherUserId = otherUserInfo?._id?.toString();
+            otherUserId = otherUserInfo?._id?.toString();
             isOnline = onlineUsers.includes(otherUserId);
             lastActiveAt = otherUserInfo?.lastActiveAt;
         }
@@ -97,8 +112,25 @@ const ChatAppPage = () => {
             isGroup: activeConversation.type === "group",
             participants: activeConversation.participants,
             myStatus: activeConversation.myStatus || "accepted",
+            otherUserId,
         };
     }, [activeConversation, draftUser, currentUser, onlineUsers]);
+
+    // Quan hệ bạn bè với người đang chat (chỉ áp dụng chat 1-1)
+    const friendInfo = useMemo(() => {
+        const id = activeChat?.otherUserId;
+        if (!id || activeChat.isGroup || !friendsLoaded) return { status: null };
+
+        if (friends.some((f) => f._id?.toString() === id)) return { status: "friend" };
+
+        const sent = sentRequests.find((r) => r.to?._id?.toString() === id);
+        if (sent) return { status: "sent", requestId: sent._id };
+
+        const received = receivedRequests.find((r) => r.from?._id?.toString() === id);
+        if (received) return { status: "received", requestId: received._id };
+
+        return { status: "none" };
+    }, [activeChat, friends, sentRequests, receivedRequests, friendsLoaded]);
 
     const chatMessages = useMemo(() => {
         const rawMessages = messages[activeId] || [];
@@ -177,6 +209,18 @@ const ChatAppPage = () => {
         if (ok) handleBack();
     }, [activeId, handleBack]);
 
+    const handleSendFriend = useCallback(() => {
+        if (activeChat?.otherUserId) {
+            useFriendStore.getState().sendRequest(activeChat.otherUserId);
+        }
+    }, [activeChat]);
+
+    const handleAcceptFriend = useCallback(() => {
+        if (friendInfo.requestId) {
+            useFriendStore.getState().acceptRequest(friendInfo.requestId);
+        }
+    }, [friendInfo]);
+
     const handleSend = useCallback(async (text) => {
         if (!currentUser) return;
 
@@ -240,35 +284,49 @@ const ChatAppPage = () => {
 
     return (
         <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
+            <CallModal />
             <AppSidebar view={view} onChangeView={handleChangeView} />
 
             <SidebarInset className="flex min-w-0 w-full flex-1 flex-row overflow-hidden bg-background">
-                <ChatList
-                    activeId={activeId}
-                    onSelect={handleSelect}
-                    onPickUser={handlePickUser}
-                    view={view}
-                    onChangeView={handleChangeView}
-                    className={hasOpenChat ? "hidden md:flex" : "flex"}
-                />
+                {view === "contacts" ? (
+                    <ContactsPage
+                        onOpenChat={handlePickUser}
+                        onBack={() => handleChangeView("main")}
+                    />
+                ) : (
+                    <>
+                        <ChatList
+                            activeId={activeId}
+                            onSelect={handleSelect}
+                            onPickUser={handlePickUser}
+                            onOpenConversation={handleOpenConversation}
+                            view={view}
+                            onChangeView={handleChangeView}
+                            className={hasOpenChat ? "hidden md:flex" : "flex"}
+                        />
 
-                <ChatWindow
-                    key={activeId ?? (draftUser ? `draft-${draftUser._id}` : "empty")}
-                    chat={activeChat}
-                    messages={chatMessages}
-                    onBack={handleBack}
-                    onSend={handleSend}
-                    onRetry={handleRetry}
-                    onUpload={handleUpload}
-                    onAccept={handleAccept}
-                    onDecline={handleDecline}
-                    sending={sending}
-                    uploading={uploading}
-                    onLoadMore={handleLoadMore}
-                    hasMore={hasMore}
-                    loading={messageLoading}
-                    className={hasOpenChat ? "flex" : "hidden md:flex"}
-                />
+                        <ChatWindow
+                            key={activeId ?? (draftUser ? `draft-${draftUser._id}` : "empty")}
+                            chat={activeChat}
+                            messages={chatMessages}
+                            onBack={handleBack}
+                            onSend={handleSend}
+                            onRetry={handleRetry}
+                            onUpload={handleUpload}
+                            onAccept={handleAccept}
+                            onDecline={handleDecline}
+                            friendStatus={friendInfo.status}
+                            onSendFriend={handleSendFriend}
+                            onAcceptFriend={handleAcceptFriend}
+                            sending={sending}
+                            uploading={uploading}
+                            onLoadMore={handleLoadMore}
+                            hasMore={hasMore}
+                            loading={messageLoading}
+                            className={hasOpenChat ? "flex" : "hidden md:flex"}
+                        />
+                    </>
+                )}
             </SidebarInset>
         </SidebarProvider>
     );

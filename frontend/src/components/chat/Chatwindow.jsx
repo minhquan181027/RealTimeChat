@@ -1,17 +1,20 @@
 // src/components/chat/ChatWindow.jsx
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
-import { MessageSquare, X } from "lucide-react";
+import { MessageSquare, UserPlus, X } from "lucide-react";
 import { cn } from "cn";
 import ChatInput from "./ChatInput";
 import ChatWindowHeader from "./ChatWindowHeader";
 import MessageItem from "./MessageItem";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { Button } from "@/components/ui/button"
+
+
 
 const SCROLL_THRESHOLD = 80;
 
 const ChatWindow = ({
     chat, messages, onBack, onSend, onRetry, onUpload, onAccept, onDecline,
-    sending, uploading, onLoadMore, hasMore, loading, className,
+    sending, uploading, onLoadMore, hasMore, loading, friendStatus, onSendFriend, onAcceptFriend, className,
 }) => {
     const listRef = useRef(null);
     const prevScrollHeightRef = useRef(0);
@@ -107,6 +110,25 @@ const ChatWindow = ({
     return (
         <div className={cn("min-w-0 flex-1 flex-col bg-muted/40", className)}>
             <ChatWindowHeader chat={chat} onBack={onBack} />
+
+            {(friendStatus === "none" || friendStatus === "sent" || friendStatus === "received") && (
+                <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2.5">
+                    <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                        <UserPlus className="size-4 shrink-0" />
+                        <span className="truncate">
+                            {friendStatus === "none" && "Gửi yêu cầu kết bạn tới người này"}
+                            {friendStatus === "sent" && "Bạn đã gửi lời mời kết bạn, đang chờ phản hồi"}
+                            {friendStatus === "received" && `${chat.name} đã gửi lời mời kết bạn cho bạn`}
+                        </span>
+                    </div>
+                    {friendStatus === "none" && (
+                        <Button variant="secondary" onClick={onSendFriend}>Gửi kết bạn</Button>
+                    )}
+                    {friendStatus === "received" && (
+                        <Button onClick={onAcceptFriend}>Chấp nhận</Button>
+                    )}
+                </div>
+            )}
 
             <div
                 ref={listRef}

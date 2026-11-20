@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
+import { useFriendStore } from "@/stores/useFriendStore";
 
 const NAV_TOP = [
     { key: "main", icon: MessageSquare, label: "Tin nhắn" },
@@ -24,6 +25,7 @@ const AppSidebar = ({ view, onChangeView }) => {
     const pendingCount = useChatStore(
         (s) => s.conversations.filter((c) => c.myStatus === "pending").length
     );
+    const requestCount = useFriendStore((s) => s.received.length);
 
     const handleLogout = async () => {
         await signOut();
@@ -39,27 +41,30 @@ const AppSidebar = ({ view, onChangeView }) => {
 
             <SidebarContent className="items-center px-1 pt-2">
                 <SidebarMenu className="gap-2">
-                    {NAV_TOP.map(({ key, icon: Icon, label }) => (
-                        <SidebarMenuItem key={key}>
-                            <SidebarMenuButton
-                                isActive={view === key}
-                                tooltip={label}
-                                onClick={() => {
-                                    if (key === "main" || key === "pending") onChangeView?.(key);
-                                }}
-                                className="justify-center [&_svg]:size-5!"
-                            >
-                                <span className="relative">
-                                    <Icon />
-                                    {key === "pending" && pendingCount > 0 && (
-                                        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                                            {pendingCount > 99 ? "99+" : pendingCount}
-                                        </span>
-                                    )}
-                                </span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
+                    {NAV_TOP.map(({ key, icon: Icon, label }) => {
+                        const badge = key === "pending" ? pendingCount : key === "contacts" ? requestCount : 0;
+                        return (
+                            <SidebarMenuItem key={key}>
+                                <SidebarMenuButton
+                                    isActive={view === key}
+                                    tooltip={label}
+                                    onClick={() => {
+                                        if (["main", "pending", "contacts"].includes(key)) onChangeView?.(key);
+                                    }}
+                                    className="justify-center [&_svg]:size-5!"
+                                >
+                                    <span className="relative">
+                                        <Icon />
+                                        {badge > 0 && (
+                                            <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                                                {badge > 99 ? "99+" : badge}
+                                            </span>
+                                        )}
+                                    </span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        );
+                    })}
                 </SidebarMenu>
             </SidebarContent>
 

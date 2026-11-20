@@ -1,7 +1,8 @@
 import Friend from "../models/Friend.js";
 import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
-
+import Conversation from "../models/Conversation.js";
+import { getIO } from "../socket/index.js";
 
 export const sendFriendRequest = async (req, res) => {
     try {
@@ -37,6 +38,8 @@ export const sendFriendRequest = async (req, res) => {
         const request = await FriendRequest.create({
             from, to, message
         });
+        getIO().to(to.toString()).emit("friend_request_new");
+
         return res.status(200).json({ message: "Gửi lời mời kết bạn thành công" });
     } catch (error) {
         console.error("Lỗi khi gửi yêu cầu kết bạn.", error);
@@ -68,6 +71,21 @@ export const acceptFriendRequest = async (req, res) => {
 
         await FriendRequest.findByIdAndDelete(requestId);
 
+        await Conversation.updateMany(
+            {
+                type: "direct",
+                participants: { $size: 2 },
+                "participants.userId": { $all: [request.from, request.to] },
+            },
+            { $set: { "participants.$[p].status": "accepted" } },
+            { arrayFilters: [{ "p.status": "pending" }] }
+        );
+
+        const io = getIO();
+        io.to(request.from.toString()).emit("friend_accepted");
+        io.to(request.from.toString()).emit("conversation_new");
+        io.to(request.to.toString()).emit("conversation_new");
+
         const from = await User.findById(request.from)
             .select("_id displayName avatarUrl")
             .lean();
@@ -98,6 +116,11 @@ export const declineFriendRequest = async (req, res) => {
 
         if (request.to.toString() !== userId.toString()) {
             return res.status(403).json({ message: "Bạn không có quyền từ chối lời mời này" });
+        }
+        const isReceiver = request.to.toString() === userId.toString();
+        const isSender = request.from.toString() === userId.toString();
+        if (!isReceiver && !isSender) {
+            return res.status(403).json({ message: "Bạn không có quyền với lời mời này" });
         }
 
         await FriendRequest.findByIdAndDelete(requestId);

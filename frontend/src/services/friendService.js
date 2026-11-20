@@ -9,4 +9,15 @@ export const friendService = {
         const res = await api.get("/friend");
         return res.data.friends;
     },
+    getRequests: async () => {
+        const res = await api.get("/friend/request");
+        return res.data; // { received, sent }
+    },
+    acceptRequest: async (requestId) => {
+        const res = await api.post(`/friend/request/${requestId}/accept`);
+        return res.data; // { newFriend }
+    },
+    declineRequest: async (requestId) => {
+        await api.post(`/friend/request/${requestId}/decline`);
+    },
 };

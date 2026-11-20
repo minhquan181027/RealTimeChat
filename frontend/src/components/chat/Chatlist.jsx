@@ -9,9 +9,9 @@ import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
 
 const NAV_TOP = [
-    { icon: MessageSquare, label: "Tin nhắn", active: true },
-    { icon: Users, label: "Danh bạ" },
-    { icon: User, label: "Cá nhân" },
+    { key: "main", icon: MessageSquare, label: "Tin nhắn" },
+    { key: "contacts", icon: Users, label: "Danh bạ" },
+    { key: "profile", icon: User, label: "Cá nhân" },
 ];
 
 const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
@@ -209,12 +209,13 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             </div>
 
             <nav className="flex h-16 shrink-0 items-center justify-around border-t bg-background md:hidden">
-                {NAV_TOP.map(({ icon: Icon, label, active }) => (
+                {NAV_TOP.map(({ key, icon: Icon, label }) => (
                     <button
-                        key={label}
+                        key={key}
+                        onClick={() => key === "contacts" && onChangeView?.("contacts")}
                         className={cn(
                             "flex flex-col items-center gap-0.5 text-[10px]",
-                            active ? "text-primary" : "text-muted-foreground"
+                            key === "main" ? "text-primary" : "text-muted-foreground"
                         )}
                     >
                         <Icon className="size-6" />

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { authService } from "@/services/authService";
 import { useChatStore } from "./useChatStore";
 import { useSocketStore } from "./useSocketStore";
+import { useFriendStore } from "./useFriendStore";
 
 export const useAuthStore = create((set, get) => ({
     accessToken: null,
@@ -17,6 +18,7 @@ export const useAuthStore = create((set, get) => ({
         set({ accessToken: null, user: null, loading: false });
         localStorage.clear();
         useChatStore.getState().reset();
+        useFriendStore.getState().reset();
     },
 
     signUp: async (username, password, email, firstName, lastName) => {

@@ -45,6 +45,11 @@ export const chatService = {
         return res.data;
     },
 
+    addMembers: async (conversationId, memberIds) => {
+        const res = await api.post(`/conversation/${conversationId}/members`, { memberIds });
+        return res.data;
+    },
+
     uploadImage: async (file) => {
         const formData = new FormData();
         formData.append('image', file); // Key phải khớp với backend

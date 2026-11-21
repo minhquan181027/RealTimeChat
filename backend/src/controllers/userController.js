@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Friend from "../models/Friend.js";
 import FriendRequest from "../models/FriendRequest.js";
+import mongoose from "mongoose";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -75,6 +76,21 @@ export const searchUsers = async (req, res) => {
         return res.status(200).json({ users: result });
     } catch (error) {
         console.error("Lỗi searchUsers:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const getUserProfile = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ message: "id không hợp lệ" });
+        }
+        const user = await User.findById(id).select("_id displayName avatarUrl bio").lean();
+        if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
+        return res.status(200).json({ user });
+    } catch (error) {
+        console.error("Lỗi getUserProfile:", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

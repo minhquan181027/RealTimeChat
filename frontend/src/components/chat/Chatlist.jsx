@@ -65,21 +65,21 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
         if (conversation.lastMessage) {
             const { type, content, senderId } = conversation.lastMessage;
 
-            if (type === "image") {
-                lastMessageText = "[Hình ảnh]";
-            } else if (type === "video") {
-                lastMessageText = "[Video]";
+            if (type === "system") {
+                lastMessageText = content;
             } else {
-                lastMessageText = content || "[Tin nhắn]";
-            }
+                if (type === "image") lastMessageText = "[Hình ảnh]";
+                else if (type === "video") lastMessageText = "[Video]";
+                else lastMessageText = content || "[Tin nhắn]";
 
-            const senderIdStr = senderId?._id?.toString() || senderId?.toString() || senderId;
-            const isMe = senderIdStr === currentUser?._id?.toString();
-            const senderName = senderId?.userId?.displayName || senderId?.displayName;
+                const senderIdStr = senderId?._id?.toString() || senderId?.toString() || senderId;
+                const isMe = senderIdStr === currentUser?._id?.toString();
+                const senderName = senderId?.userId?.displayName || senderId?.displayName;
 
-            if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
-            else if (conversation.type === "group" && senderName) {
-                lastMessageText = `${senderName}: ${lastMessageText}`;
+                if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
+                else if (conversation.type === "group" && senderName) {
+                    lastMessageText = `${senderName}: ${lastMessageText}`;
+                }
             }
         } else if (conversation.type === "group") {
             lastMessageText = "Nhóm mới được tạo";

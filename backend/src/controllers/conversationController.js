@@ -309,5 +309,87 @@ const setMyStatus = async (req, res, status) => {
     }
 };
 
+export const addMembers = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { memberIds } = req.body;
+        const userId = req.user._id;
+
+        if (!mongoose.isValidObjectId(conversationId)) {
+            return res.status(400).json({ message: "conversationId không hợp lệ" });
+        }
+        if (!Array.isArray(memberIds) || memberIds.length === 0 || !memberIds.every((id) => mongoose.isValidObjectId(id))) {
+            return res.status(400).json({ message: "Danh sách thành viên không hợp lệ" });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation || conversation.type !== "group") {
+            return res.status(404).json({ message: "Không tìm thấy nhóm" });
+        }
+
+        const me = conversation.participants.find((p) => p.userId.toString() === userId.toString());
+        if (!me || (me.status || "accepted") !== "accepted") {
+            return res.status(403).json({ message: "Bạn không thể thêm thành viên vào nhóm này" });
+        }
+
+        // Bỏ trùng và bỏ người đã có trong nhóm
+        const existing = new Set(conversation.participants.map((p) => p.userId.toString()));
+        const newIds = [...new Set(memberIds.map((id) => id.toString()))].filter((id) => !existing.has(id));
+        if (newIds.length === 0) {
+            return res.status(400).json({ message: "Những người này đã ở trong nhóm" });
+        }
+
+        const newUsers = await User.find({ _id: { $in: newIds } }).select("_id displayName").lean();
+        if (newUsers.length !== newIds.length) {
+            return res.status(404).json({ message: "Có người dùng không tồn tại" });
+        }
+
+        const oldMembers = conversation.participants
+            .filter((p) => p.status !== "declined")
+            .map((p) => p.userId.toString());
+
+        const nonFriends = await findNonFriendIds(userId, newIds);
+        newIds.forEach((id) => {
+            conversation.participants.push({
+                userId: id,
+                status: nonFriends.has(id) ? "pending" : "accepted",
+            });
+        });
+
+        // Tin nhắn hệ thống
+        const names = newUsers.map((u) => u.displayName).join(", ");
+        const message = await Message.create({
+            conversationId: conversation._id,
+            senderId: userId,
+            content: `${names} được ${req.user.displayName} thêm vào nhóm`,
+            type: "system",
+        });
+
+        conversation.set({
+            lastMessage: {
+                _id: message._id.toString(),
+                content: message.content,
+                type: "system",
+                senderId: userId,
+                createdAt: message.createdAt,
+            },
+            lastMessageAt: message.createdAt,
+        });
+        await conversation.save();
+        await message.populate("senderId", "displayName avatarUrl");
+
+        const io = getIO();
+        oldMembers.forEach((id) => io.to(id).emit("new_message", message));
+        // Mọi người (cả người mới) tải lại danh sách để cập nhật thành viên
+        [...oldMembers, ...newIds].forEach((id) => io.to(id).emit("conversation_new"));
+
+        await conversation.populate(populateOptions);
+        return res.status(200).json({ conversation: formatConversation(conversation, userId) });
+    } catch (error) {
+        console.error("Lỗi addMembers:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
 export const acceptConversation = (req, res) => setMyStatus(req, res, "accepted");
 export const declineConversation = (req, res) => setMyStatus(req, res, "declined");

@@ -3,16 +3,29 @@ import React from "react";
 import { cn } from "cn";
 
 // 🆕 Bọc React.memo: Nếu props không đổi, Component này sẽ KHÔNG render lại
-const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoad }) => {
+const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoad, onAvatarClick }) => {
     // Kiểm tra xem tin nhắn chỉ có ảnh hay chỉ có emoji
     const isOnlyImage = m.imgURL && !m.text;
     const emojiRegex = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\s)+$/u;
     const isOnlyEmoji = m.text && emojiRegex.test(m.text.trim()) && m.text.trim().length <= 6;
 
+    if (m.type === "system") {
+        return (
+            <div className="my-1 flex justify-center">
+                <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-xs text-muted-foreground">
+                    {m.text}
+                </span>
+            </div>
+        );
+    }
+
     return (
         <div className={cn("flex items-end gap-2", m.mine ? "justify-end" : "justify-start")}>
             {!m.mine && (
-                <img src={chat.avatar} alt="" className="size-9 self-end rounded-full" />
+                <img src={m.senderAvatar || chat.avatar} alt=""
+                    onClick={() => onAvatarClick?.(m)}
+                    className="size-9 shrink-0 cursor-pointer self-end rounded-full object-cover hover:opacity-80"
+                />
             )}
 
             {m.mine && m.failed && (
@@ -33,7 +46,7 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                     m.pending && "opacity-60"
                 )}
             >
-                {!m.mine && !isOnlyEmoji && (
+                {!m.mine && chat.isGroup && (
                     <div className="mb-1 text-[13px] font-medium text-muted-foreground/60">
                         {m.sender}
                     </div>

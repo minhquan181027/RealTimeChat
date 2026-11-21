@@ -175,3 +175,27 @@ export const getFriendRequests = async (req, res) => {
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };
+
+export const removeFriend = async (req, res) => {
+    try {
+        const { friendId } = req.params;
+        const userId = req.user._id;
+
+        let userA = userId.toString();
+        let userB = friendId.toString();
+        if (userA > userB) [userA, userB] = [userB, userA];
+
+        const deleted = await Friend.findOneAndDelete({ userA, userB });
+        if (!deleted) {
+            return res.status(404).json({ message: "Hai người chưa là bạn bè" });
+        }
+
+        // Báo cho người kia cập nhật danh sách bạn
+        getIO().to(friendId.toString()).emit("friend_removed", { userId: userId.toString() });
+
+        return res.sendStatus(204);
+    } catch (error) {
+        console.error("Lỗi khi xóa bạn bè.", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};

@@ -4,7 +4,8 @@ import {
     getConversations,
     getMessages, markAsRead,
     acceptConversation,
-    declineConversation
+    declineConversation,
+    addMembers
 } from '../controllers/conversationController.js'
 
 
@@ -16,5 +17,6 @@ router.get("/:conversationId/messages", getMessages);
 router.put("/:conversationId/read", markAsRead);
 router.put("/:conversationId/accept", acceptConversation);
 router.put("/:conversationId/decline", declineConversation);
+router.post("/:conversationId/members", addMembers);
 
 export default router;

@@ -14,7 +14,7 @@ const SCROLL_THRESHOLD = 80;
 
 const ChatWindow = ({
     chat, messages, onBack, onSend, onRetry, onUpload, onAccept, onDecline,
-    sending, uploading, onLoadMore, hasMore, loading, friendStatus, onSendFriend, onAcceptFriend, className,
+    sending, uploading, onLoadMore, hasMore, loading, friendStatus, onSendFriend, onAcceptFriend, className, onAvatarClick
 }) => {
     const listRef = useRef(null);
     const prevScrollHeightRef = useRef(0);
@@ -159,8 +159,10 @@ const ChatWindow = ({
                                 m={m}
                                 chat={chat}
                                 onRetry={onRetry}
+
                                 setSelectedImage={setSelectedImage}
                                 onImageLoad={handleImageLoad}
+                                onAvatarClick={onAvatarClick}
                             />
 
                             {showSeenAvatar && (

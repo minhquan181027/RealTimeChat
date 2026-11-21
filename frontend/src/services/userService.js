@@ -6,4 +6,8 @@ export const userService = {
         const res = await api.get("/user/search", { params: { q } });
         return res.data.users;
     },
+    getProfile: async (id) => {
+        const res = await api.get(`/user/${id}`);
+        return res.data.user;
+    },
 };

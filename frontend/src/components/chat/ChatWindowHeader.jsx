@@ -1,15 +1,17 @@
 // src/components/chat/ChatWindowHeader.jsx
-import { Video, MoreVertical, ChevronLeft } from "lucide-react";
+import { Video, MoreVertical, ChevronLeft, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "./StatusBadge";
 import { useState, useEffect } from "react";
 import { formatLastSeen } from "@/utils/date";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { useCallStore } from "@/stores/useCallStore";
-import { useAuthStore } from "@/stores/useAuthStore"; // 🆕 Thêm import này
+import { useAuthStore } from "@/stores/useAuthStore";
+import AddMembersDialog from "./AddMembersDialog";
 
 const ChatWindowHeader = ({ chat, onBack }) => {
     const [now, setNow] = useState(() => Date.now());
+    const [addOpen, setAddOpen] = useState(false);
 
     const socket = useSocketStore(state => state.socket);
     const startOutgoingCall = useCallStore(state => state.startOutgoingCall);
@@ -22,6 +24,9 @@ const ChatWindowHeader = ({ chat, onBack }) => {
     }, []);
 
     if (!chat) return null;
+
+    const members = (chat.participants || []).filter((p) => p.status !== "declined");
+    const existingIds = (chat.participants || []).map((p) => p._id?.toString());
 
     const handleStartCall = () => {
         if (!chat.id || !socket || !currentUser) return;
@@ -79,18 +84,28 @@ const ChatWindowHeader = ({ chat, onBack }) => {
                         <h2 className="truncate text-[15px] font-semibold md:text-base leading-tight">
                             {chat.name}
                         </h2>
-                        <span className="text-xs text-muted-foreground truncate">
-                            {chat.isOnline ? "Đang hoạt động" : formatLastSeen(chat.lastActiveAt)}
+                        <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                            {chat.isGroup ? (
+                                <>
+                                    <Users className="size-3.5" />
+                                    {members.length} thành viên
+                                </>
+                            ) : chat.isOnline ? "Đang hoạt động" : formatLastSeen(chat.lastActiveAt)}
                         </span>
                     </div>
                 </div>
 
                 <div className="flex gap-1 text-muted-foreground">
+                    {chat.isGroup && chat.id && chat.myStatus !== "pending" && (
+                        <Button variant="ghost" size="icon" onClick={() => setAddOpen(true)} title="Thêm thành viên">
+                            <UserPlus className="size-5" />
+                        </Button>
+                    )}
                     {/* 🆕 Sửa lại onClick gọi hàm handleStartCall */}
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="hidden sm:inline-flex"
+
                         onClick={handleStartCall}
                         disabled={!chat.id} // Không cho gọi nếu là chat nháp
                     >
@@ -101,6 +116,14 @@ const ChatWindowHeader = ({ chat, onBack }) => {
                     </Button>
                 </div>
             </div>
+            {chat.isGroup && (
+                <AddMembersDialog
+                    open={addOpen}
+                    onOpenChange={setAddOpen}
+                    conversationId={chat.id}
+                    existingIds={existingIds}
+                />
+            )}
         </>
     );
 };

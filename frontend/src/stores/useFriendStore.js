@@ -68,4 +68,20 @@ export const useFriendStore = create((set, get) => ({
             toast.error(error.response?.data?.message || "Thao tác thất bại");
         }
     },
+
+    removeFriend: async (friendId) => {
+        try {
+            await friendService.removeFriend(friendId);
+            set((s) => ({ friends: s.friends.filter((f) => f._id !== friendId) }));
+            toast.success("Đã xóa khỏi danh sách bạn bè");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Không xóa được bạn bè");
+            return false;
+        }
+    },
+
+    // Dùng cho socket: người kia vừa xóa mình
+    dropFriend: (friendId) =>
+        set((s) => ({ friends: s.friends.filter((f) => f._id !== friendId) })),
 }));

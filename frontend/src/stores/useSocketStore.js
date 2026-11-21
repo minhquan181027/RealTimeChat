@@ -80,6 +80,10 @@ export const useSocketStore = create((set, get) => ({
             useFriendStore.getState().fetchRequests();
         });
 
+        socket.on("friend_removed", ({ userId }) => {
+            useFriendStore.getState().dropFriend(userId);
+        });
+
         socket.on("conversation_new", () => {
             useChatStore.getState().fetchConversations();
         });

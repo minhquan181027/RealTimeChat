@@ -43,16 +43,9 @@ const CallModal = () => {
         endCall();
     };
 
-    // Nếu đang trong phòng gọi (LiveKit)
     if (isInCall) {
         return (
-            <div className="fixed inset-0 z-[200] flex flex-col bg-black">
-                <div className="flex justify-end p-4 absolute top-0 right-0 z-50">
-                    <Button onClick={handleEnd} variant="destructive" size="icon" className="rounded-full">
-                        <PhoneOff className="size-5" />
-                    </Button>
-                </div>
-                {/* Lấy Token LiveKit và kết nối */}
+            <div className="fixed inset-0 z-[200] bg-black">
                 <LiveKitRoomWrapper roomName={callState.roomName} onLeave={handleEnd} />
             </div>
         );
@@ -60,16 +53,19 @@ const CallModal = () => {
 
     // Giao diện đang đổ chuông (Chưa kết nối LiveKit)
     return (
-        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-gray-900/90 text-white p-4">
-            <div className="flex flex-col items-center mb-8">
-                <img
-                    src={isOutgoing ? callState.targetAvatar : callState.caller?.avatarUrl}
-                    className="size-32 rounded-full object-cover mb-4 ring-4 ring-primary/50"
-                />
+        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-gray-950 p-4 text-white">
+            <div className="mb-10 flex flex-col items-center">
+                <div className="relative mb-6">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
+                    <img
+                        src={isOutgoing ? callState.targetAvatar : callState.caller?.avatarUrl}
+                        className="relative size-32 rounded-full object-cover ring-4 ring-primary/50"
+                    />
+                </div>
                 <h2 className="text-2xl font-bold">
                     {isOutgoing ? callState.targetName : callState.caller?.displayName}
                 </h2>
-                <p className="text-gray-400 mt-2">
+                <p className="mt-2 text-gray-400">
                     {isOutgoing ? "Đang gọi..." : "Cuộc gọi video đến..."}
                 </p>
             </div>
@@ -106,17 +102,23 @@ const LiveKitRoomWrapper = ({ roomName, onLeave }) => {
         fetchToken();
     }, [roomName]);
 
-    if (!token) return <div className="text-white">Đang kết nối...</div>;
-
+    if (!token) {
+        return (
+            <div className="flex h-full items-center justify-center text-white">
+                Đang kết nối...
+            </div>
+        );
+    }
     return (
         <LiveKitRoom
+            data-lk-theme="default"
             token={token}
             serverUrl={import.meta.env.VITE_LIVEKIT_URL}
             connect={true}
             video={true}
             audio={true}
             onDisconnected={onLeave}
-            className="flex-1"
+            style={{ height: "100dvh" }}
         >
             <VideoConference />
         </LiveKitRoom>

@@ -11,6 +11,9 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { useFriendStore } from "@/stores/useFriendStore";
 import { getMessageDivider } from "@/utils/date";
+import { toast } from "sonner";
+import ProfileDialog from "@/components/chat/ProfileDialog";
+import { useCallStore } from "@/stores/useCallStore";
 
 const ChatAppPage = () => {
     const [activeId, setActiveId] = useState(null);
@@ -28,6 +31,10 @@ const ChatAppPage = () => {
     const sentRequests = useFriendStore((s) => s.sent);
     const receivedRequests = useFriendStore((s) => s.received);
     const friendsLoaded = useFriendStore((s) => s.friendsLoaded);
+
+    const [profileUser, setProfileUser] = useState(null);
+    const socket = useSocketStore((s) => s.socket);
+    const startOutgoingCall = useCallStore((s) => s.startOutgoingCall);
 
     useEffect(() => {
         useChatStore.getState().fetchConversations();
@@ -147,6 +154,11 @@ const ChatAppPage = () => {
                 text: m.content || "",
                 imgURL: m.imgURL || null,
                 sender: m.senderId?.displayName || "Ai đó",
+                senderId: m.senderId?._id?.toString(),
+                type: m.type,
+                senderAvatar:
+                    m.senderId?.avatarUrl ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderId?.displayName || "U")}&background=random`,
                 time: currentDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
                 dividerText,
                 pending: !!m._pending,
@@ -193,6 +205,44 @@ const ChatAppPage = () => {
         setView("main");
         setActiveId(id);
     }, []);
+
+
+    const handleAvatarClick = useCallback((m) => {
+        if (!m.senderId) return;
+        setProfileUser({ _id: m.senderId, displayName: m.sender, avatarUrl: m.senderAvatar });
+    }, []);
+
+    const handleMessageUser = useCallback((user) => {
+        setProfileUser(null);
+        handlePickUser(user); // mở chat cũ hoặc chat nháp
+    }, [handlePickUser]);
+
+    const handleCallUser = useCallback((user) => {
+        // Cuộc gọi dùng id cuộc trò chuyện 1-1 làm tên phòng
+        const conv = conversations.find(
+            (c) =>
+                c.type === "direct" &&
+                c.participants.some((p) => p._id?.toString() === user._id.toString())
+        );
+        if (!conv) {
+            toast.error("Hãy nhắn tin cho người này trước khi gọi");
+            return;
+        }
+        if (!socket || !currentUser) return;
+
+        socket.emit("call_user", {
+            targetUserIds: [user._id],
+            roomName: conv._id,
+            caller: currentUser,
+        });
+        startOutgoingCall({
+            roomName: conv._id,
+            targetUserIds: [user._id],
+            targetName: user.displayName,
+            targetAvatar: user.avatarUrl,
+        });
+        setProfileUser(null);
+    }, [conversations, socket, currentUser, startOutgoingCall]);
 
     const handleAccept = useCallback(async () => {
         if (!activeId) return;
@@ -285,6 +335,13 @@ const ChatAppPage = () => {
     return (
         <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
             <CallModal />
+            <ProfileDialog
+                user={profileUser}
+                onClose={() => setProfileUser(null)}
+                onMessage={handleMessageUser}
+                onCall={handleCallUser}
+            />
+
             <AppSidebar view={view} onChangeView={handleChangeView} />
 
             <SidebarInset className="flex min-w-0 w-full flex-1 flex-row overflow-hidden bg-background">
@@ -315,6 +372,7 @@ const ChatAppPage = () => {
                             onUpload={handleUpload}
                             onAccept={handleAccept}
                             onDecline={handleDecline}
+                            onAvatarClick={handleAvatarClick}
                             friendStatus={friendInfo.status}
                             onSendFriend={handleSendFriend}
                             onAcceptFriend={handleAcceptFriend}

@@ -176,3 +176,39 @@
     @apply bg-base-100 text-base-content;
   }
 }
+
+/* Video call: ép style LiveKit để không bị theme của app đè */
+.lk-video-conference {
+  height: 100%;
+}
+
+[data-lk-theme="default"] {
+  --lk-bg: #000;
+  --lk-fg: #fff;
+  --lk-control-fg: #fff;
+  --lk-control-bg: #26262b;
+  --lk-control-hover-bg: #3a3a42;
+}
+
+[data-lk-theme="default"] .lk-control-bar {
+  background: #0b0b0d;
+  padding: 12px 16px;
+  border-top: 1px solid #1f1f24;
+}
+
+[data-lk-theme="default"] .lk-button {
+  color: #fff;
+  opacity: 1;
+}
+
+[data-lk-theme="default"] .lk-button:disabled {
+  opacity: 0.5;
+}
+
+[data-lk-theme="default"] .lk-disconnect-button {
+  background: #dc2626;
+}
+
+[data-lk-theme="default"] .lk-disconnect-button:hover {
+  background: #ef4444;
+}

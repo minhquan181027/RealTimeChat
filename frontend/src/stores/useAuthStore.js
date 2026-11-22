@@ -4,6 +4,9 @@ import { authService } from "@/services/authService";
 import { useChatStore } from "./useChatStore";
 import { useSocketStore } from "./useSocketStore";
 import { useFriendStore } from "./useFriendStore";
+import { userService } from "@/services/userService";
+import { setLanguage } from "@/i18n";
+import i18n from "@/i18n"
 
 export const useAuthStore = create((set, get) => ({
     accessToken: null,
@@ -27,7 +30,7 @@ export const useAuthStore = create((set, get) => ({
 
             //gọi api
             await authService.signUp(username, password, email, firstName, lastName);
-            toast.success("Đăng ký thành công.")
+            toast.success(i18n.t("toast.signUpOk"))
         } catch (error) {
             console.error(error);
             throw error;
@@ -53,7 +56,7 @@ export const useAuthStore = create((set, get) => ({
 
 
 
-            toast.success("Đăng nhập thành công")
+            toast.success(i18n.t("toast.signInOk"))
         } catch (error) {
             console.error(error);
 
@@ -74,7 +77,7 @@ export const useAuthStore = create((set, get) => ({
 
             await get().fetchMe();
             await useChatStore.getState().fetchConversations();
-            toast.success("Đăng nhập thành công")
+            toast.success(i18n.t("toast.signInOk"))
         } catch (error) {
             console.error(error);
             throw error;
@@ -87,10 +90,10 @@ export const useAuthStore = create((set, get) => ({
         try {
             get().clearState();
             await authService.signOut();
-            toast.success("Logout thành công!");
+            toast.success(i18n.t("toast.signOutOk"));
         } catch (error) {
             console.error(error);
-            toast.error("Lỗi logout");
+            toast.error(i18n.t("toast.signOutFail"));
         } finally {
 
             get().clearState();
@@ -103,6 +106,7 @@ export const useAuthStore = create((set, get) => ({
             set({ loading: true });
             const user = await authService.fetchMe();
             set({ user });
+            if (user?.language) setLanguage(user.language);
         } catch (error) {
             console.error(
                 "FetchMe error:",
@@ -112,10 +116,16 @@ export const useAuthStore = create((set, get) => ({
 
             set({ user: null });
 
-            toast.error("Không lấy được thông tin người dùng.");
+            toast.error(i18n.t("toast.fetchMeFail"));
         } finally {
             set({ loading: false });
         }
+    },
+
+    updateProfile: async (payload) => {
+        const user = await userService.updateMe(payload);
+        set({ user });
+        return user;
     },
 
     refresh: async () => {

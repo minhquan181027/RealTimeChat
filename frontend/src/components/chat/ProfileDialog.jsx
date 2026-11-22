@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { MessageCircle, Phone, UserPlus, UserCheck, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { userService } from "@/services/userService";
 import { useFriendStore } from "@/stores/useFriendStore";
+import { localeOf } from "@/i18n";
 
 const avatarOf = (u) =>
     u?.avatarUrl ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(u?.displayName || "U")}&background=random`;
 
 const ProfileBody = ({ user, onMessage, onCall }) => {
+    const { t } = useTranslation();
     const [profile, setProfile] = useState(null);
     const [confirming, setConfirming] = useState(false);
     const friends = useFriendStore((s) => s.friends);
@@ -27,7 +30,7 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
     }, [user._id]);
 
     const id = user._id.toString();
-    const info = profile || user; // hiện tạm thông tin có sẵn trong lúc chờ tải
+    const info = profile || user;
     const receivedReq = received.find((r) => r.from?._id?.toString() === id);
 
     let relation = null;
@@ -42,6 +45,8 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
         const ok = await useFriendStore.getState().removeFriend(id);
         if (ok) setConfirming(false);
     };
+
+    const notSet = t("common.notSet");
 
     return (
         <>
@@ -59,34 +64,47 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
                 {relation === "none" && (
                     <Button variant="secondary" className="flex-1"
                         onClick={() => useFriendStore.getState().sendRequest(id)}>
-                        <UserPlus /> Kết bạn
+                        <UserPlus /> {t("profile.addFriend")}
                     </Button>
                 )}
                 {relation === "sent" && (
                     <Button variant="secondary" className="flex-1" disabled>
-                        <UserCheck /> Đã gửi lời mời
+                        <UserCheck /> {t("profile.sentBtn")}
                     </Button>
                 )}
                 {relation === "received" && (
                     <Button variant="secondary" className="flex-1"
                         onClick={() => useFriendStore.getState().acceptRequest(receivedReq._id)}>
-                        <UserCheck /> Chấp nhận kết bạn
+                        <UserCheck /> {t("profile.acceptFriend")}
                     </Button>
                 )}
                 {relation === "friend" && (
                     <Button variant="secondary" className="flex-1" onClick={() => onCall(info)}>
-                        <Phone /> Gọi điện
+                        <Phone /> {t("profile.call")}
                     </Button>
                 )}
                 <Button className="flex-1" onClick={() => onMessage(info)}>
-                    <MessageCircle /> Nhắn tin
+                    <MessageCircle /> {t("profile.message")}
                 </Button>
             </div>
 
+            <div className="border-t px-4 py-3 text-sm">
+                <p className="mb-1 font-semibold">{t("profile.personal")}</p>
+                <p className="text-muted-foreground">
+                    {t("profile.gender")}: {profile?.gender ? t(`gender.${profile.gender}`) : notSet}
+                </p>
+                <p className="text-muted-foreground">
+                    {t("profile.dob")}:{" "}
+                    {profile?.dateOfBirth
+                        ? new Date(profile.dateOfBirth).toLocaleDateString(localeOf(), { timeZone: "UTC" })
+                        : notSet}
+                </p>
+            </div>
+
             <div className="border-t px-4 py-3">
-                <p className="mb-1 text-sm font-semibold">Giới thiệu</p>
+                <p className="mb-1 text-sm font-semibold">{t("profile.intro")}</p>
                 <p className="text-sm text-muted-foreground">
-                    {profile ? profile.bio || "Chưa có giới thiệu" : "Đang tải..."}
+                    {profile ? profile.bio || t("profile.noIntro") : t("common.loading")}
                 </p>
             </div>
 
@@ -94,10 +112,14 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
                 <div className="border-t px-4 py-3">
                     {confirming ? (
                         <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm">Xóa {info.displayName} khỏi danh sách bạn bè?</p>
+                            <p className="text-sm">{t("profile.confirmUnfriend", { name: info.displayName })}</p>
                             <div className="flex shrink-0 gap-2">
-                                <Button variant="secondary" onClick={() => setConfirming(false)}>Hủy</Button>
-                                <Button variant="destructive" onClick={handleRemove}>Xóa</Button>
+                                <Button variant="secondary" onClick={() => setConfirming(false)}>
+                                    {t("common.cancel")}
+                                </Button>
+                                <Button variant="destructive" onClick={handleRemove}>
+                                    {t("common.delete")}
+                                </Button>
                             </div>
                         </div>
                     ) : (
@@ -106,7 +128,7 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
                             className="flex w-full items-center gap-3 rounded-md px-1 py-2 text-sm text-destructive hover:bg-muted/60"
                         >
                             <Trash2 className="size-4" />
-                            Xóa khỏi danh sách bạn bè
+                            {t("profile.unfriend")}
                         </button>
                     )}
                 </div>
@@ -115,17 +137,18 @@ const ProfileBody = ({ user, onMessage, onCall }) => {
     );
 };
 
-const ProfileDialog = ({ user, onClose, onMessage, onCall }) => (
-    <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
-            <DialogHeader className="sr-only">
-                <DialogTitle>Thông tin tài khoản</DialogTitle>
-            </DialogHeader>
-            {user && (
-                <ProfileBody key={user._id} user={user} onMessage={onMessage} onCall={onCall} />
-            )}
-        </DialogContent>
-    </Dialog>
-);
+const ProfileDialog = ({ user, onClose, onMessage, onCall }) => {
+    const { t } = useTranslation();
+    return (
+        <Dialog open={!!user} onOpenChange={(o) => !o && onClose()}>
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>{t("profile.title")}</DialogTitle>
+                </DialogHeader>
+                {user && <ProfileBody key={user._id} user={user} onMessage={onMessage} onCall={onCall} />}
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export default ProfileDialog;

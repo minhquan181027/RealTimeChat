@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +16,7 @@ const avatarOf = (u) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName)}&background=random`;
 
 const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
+    const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const [selected, setSelected] = useState({});
     const [friends, setFriends] = useState(null);
@@ -48,10 +50,10 @@ const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
         try {
             await chatService.addMembers(conversationId, selectedList.map((u) => u._id));
             await useChatStore.getState().fetchConversations();
-            toast.success("Đã thêm thành viên");
+            toast.success(t("addMembers.done"));
             onClose();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Không thêm được thành viên");
+            toast.error(err.response?.data?.message || t("addMembers.failed"));
             setSubmitting(false);
         }
     };
@@ -64,7 +66,7 @@ const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
                     <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="Tìm bạn bè hoặc nhập tên/email"
+                        placeholder={t("addMembers.search")}
                         className="h-10 rounded-full border-none bg-muted pl-9 shadow-none"
                     />
                 </div>
@@ -84,12 +86,12 @@ const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
 
             <div className="h-80 overflow-y-auto border-t">
                 <p className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
-                    {canSearch ? "Kết quả tìm kiếm" : "Bạn bè"}
+                    {canSearch ? t("createGroup.results") : t("createGroup.friends")}
                 </p>
                 {loading ? (
-                    <p className="p-4 text-sm text-muted-foreground">Đang tải...</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("common.loading")}</p>
                 ) : list.length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground">Không có ai để thêm</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("addMembers.nobody")}</p>
                 ) : (
                     list.map((u) => {
                         const checked = !!selected[u._id];
@@ -110,7 +112,7 @@ const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-medium">{u.displayName}</p>
                                     {canSearch && u.relation !== "friend" && (
-                                        <p className="text-xs text-muted-foreground">Chưa là bạn, vào tin nhắn chờ</p>
+                                        <p className="text-xs text-muted-foreground">{t("addMembers.stranger")}</p>
                                     )}
                                 </div>
                             </div>
@@ -120,28 +122,33 @@ const AddMembersBody = ({ conversationId, existingIds, onClose }) => {
             </div>
 
             <div className="flex justify-end gap-2 border-t bg-background px-4 py-3">
-                <Button variant="secondary" onClick={onClose}>Hủy</Button>
+                <Button variant="secondary" onClick={onClose}>{t("common.cancel")}</Button>
                 <Button disabled={selectedList.length === 0 || submitting} onClick={handleAdd}>
-                    {submitting ? "Đang thêm..." : `Thêm${selectedList.length ? ` (${selectedList.length})` : ""}`}
+                    {submitting
+                        ? t("addMembers.adding")
+                        : `${t("addMembers.add")}${selectedList.length ? ` (${selectedList.length})` : ""}`}
                 </Button>
             </div>
         </>
     );
 };
 
-const AddMembersDialog = ({ open, onOpenChange, conversationId, existingIds }) => (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-xl">
-            <DialogHeader className="px-4 py-3">
-                <DialogTitle>Thêm thành viên</DialogTitle>
-            </DialogHeader>
-            <AddMembersBody
-                conversationId={conversationId}
-                existingIds={existingIds}
-                onClose={() => onOpenChange(false)}
-            />
-        </DialogContent>
-    </Dialog>
-);
+const AddMembersDialog = ({ open, onOpenChange, conversationId, existingIds }) => {
+    const { t } = useTranslation();
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="gap-0 p-0 sm:max-w-xl">
+                <DialogHeader className="px-4 py-3">
+                    <DialogTitle>{t("addMembers.title")}</DialogTitle>
+                </DialogHeader>
+                <AddMembersBody
+                    conversationId={conversationId}
+                    existingIds={existingIds}
+                    onClose={() => onOpenChange(false)}
+                />
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export default AddMembersDialog;

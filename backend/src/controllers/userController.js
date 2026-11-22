@@ -86,11 +86,83 @@ export const getUserProfile = async (req, res) => {
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({ message: "id không hợp lệ" });
         }
-        const user = await User.findById(id).select("_id displayName avatarUrl bio").lean();
+        const user = await User.findById(id).select("_id displayName avatarUrl bio gender dateOfBirth").lean();
         if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
         return res.status(200).json({ user });
     } catch (error) {
         console.error("Lỗi getUserProfile:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { displayName, bio, phone, gender, dateOfBirth, avatarUrl, language, autoTranslate } = req.body;
+        const $set = {};
+        const $unset = {};
+        const bad = (message) => res.status(400).json({ message });
+
+        if (displayName !== undefined) {
+            const name = String(displayName).trim();
+            if (!name || name.length > 50) return bad("Tên hiển thị phải từ 1 đến 50 ký tự");
+            $set.displayName = name;
+        }
+
+        if (bio !== undefined) {
+            const b = String(bio).trim();
+            if (b.length > 500) return bad("Giới thiệu tối đa 500 ký tự");
+            if (b) $set.bio = b; else $unset.bio = 1;
+        }
+
+        if (phone !== undefined) {
+            const p = String(phone).trim();
+            if (p && !/^\+?[0-9\s]{8,15}$/.test(p)) return bad("Số điện thoại không hợp lệ");
+            if (p) $set.phone = p; else $unset.phone = 1;
+        }
+
+        if (gender !== undefined) {
+            if (gender && !["male", "female", "other"].includes(gender)) return bad("Giới tính không hợp lệ");
+            if (gender) $set.gender = gender; else $unset.gender = 1;
+        }
+
+        if (dateOfBirth !== undefined) {
+            if (dateOfBirth) {
+                const d = new Date(dateOfBirth);
+                if (isNaN(d.getTime()) || d > new Date()) return bad("Ngày sinh không hợp lệ");
+                $set.dateOfBirth = d;
+            } else {
+                $unset.dateOfBirth = 1;
+            }
+        }
+
+        if (avatarUrl !== undefined) {
+            if (typeof avatarUrl !== "string" || !avatarUrl.startsWith("https://")) {
+                return bad("Ảnh đại diện không hợp lệ");
+            }
+            $set.avatarUrl = avatarUrl;
+        }
+        if (language !== undefined) {
+            if (!["vi", "en", "ja"].includes(language)) return bad("Ngôn ngữ không hợp lệ");
+            $set.language = language;
+        }
+
+        if (autoTranslate !== undefined) {
+            if (typeof autoTranslate !== "boolean") return bad("Giá trị không hợp lệ");
+            $set.autoTranslate = autoTranslate;
+        }
+
+        const update = {};
+        if (Object.keys($set).length) update.$set = $set;
+        if (Object.keys($unset).length) update.$unset = $unset;
+        if (!Object.keys(update).length) return bad("Không có gì để cập nhật");
+
+        const user = await User.findByIdAndUpdate(req.user._id, update, { returnDocument: "after" })
+            .select("-hashedPassword")
+            .lean();
+
+        return res.status(200).json({ user });
+    } catch (error) {
+        console.error("Lỗi updateProfile:", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

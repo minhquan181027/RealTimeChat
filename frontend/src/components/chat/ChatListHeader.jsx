@@ -1,6 +1,7 @@
 // src/components/chat/ChatListHeader.jsx
 import { useState } from "react";
 import { Search, Palette, Plus, UserPlus, Users, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { useUserSearch } from "@/hooks/useUserSearch";
 import AddFriendDialog from "./AddFriendDialog";
@@ -18,7 +19,8 @@ const themes = [
     { name: "Dracula", colors: ["bg-slate-800", "bg-purple-600", "bg-pink-500"] },
 ];
 
-const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat" }) => {
+const ChatListHeader = ({ onPickUser, onOpenConversation, title }) => {
+    const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const [addOpen, setAddOpen] = useState(false);
     const [groupOpen, setGroupOpen] = useState(false);
@@ -35,7 +37,6 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat"
         document.documentElement.setAttribute("data-theme", themeName.toLowerCase());
     };
 
-    // Đóng dropdown daisyUI rồi mở dialog
     const openDialog = (setter) => {
         document.activeElement?.blur();
         setter(true);
@@ -44,13 +45,14 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat"
     return (
         <div className="flex flex-col bg-background pt-4 text-foreground">
             <div className="flex items-center justify-between px-4 pb-3">
-                <h1 className="text-2xl font-bold">{title}</h1>
+                <h1 className="text-2xl font-bold">{title ?? t("chatList.title")}</h1>
 
                 <div className="flex items-center gap-2">
                     <div className="dropdown dropdown-end">
                         <div
                             tabIndex={0}
                             role="button"
+                            title={t("chatList.theme")}
                             className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted/80"
                         >
                             <Palette className="size-5" />
@@ -92,13 +94,13 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat"
                             <li>
                                 <button className="flex w-full items-center gap-3" onClick={() => openDialog(setAddOpen)}>
                                     <UserPlus className="size-4" />
-                                    <span className="font-medium">Thêm bạn</span>
+                                    <span className="font-medium">{t("chatList.addFriend")}</span>
                                 </button>
                             </li>
                             <li>
                                 <button className="flex w-full items-center gap-3" onClick={() => openDialog(setGroupOpen)}>
                                     <Users className="size-4" />
-                                    <span className="font-medium">Tạo nhóm</span>
+                                    <span className="font-medium">{t("chatList.createGroup")}</span>
                                 </button>
                             </li>
                         </ul>
@@ -112,7 +114,7 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat"
                     <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="Tìm kiếm..."
+                        placeholder={t("chatList.search")}
                         className="h-10 w-full rounded-full border-none bg-muted pl-9 pr-9 text-foreground shadow-none placeholder:text-muted-foreground"
                     />
                     {keyword && (
@@ -128,9 +130,9 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title = "Đoạn chat"
                 {canSearch && (
                     <div className="absolute left-4 right-4 top-full z-50 mt-1 max-h-72 overflow-y-auto rounded-xl border bg-background shadow-lg">
                         {searching ? (
-                            <p className="p-3 text-sm text-muted-foreground">Đang tìm...</p>
+                            <p className="p-3 text-sm text-muted-foreground">{t("addFriend.searching")}</p>
                         ) : users.length === 0 ? (
-                            <p className="p-3 text-sm text-muted-foreground">Không tìm thấy người dùng</p>
+                            <p className="p-3 text-sm text-muted-foreground">{t("addFriend.notFound")}</p>
                         ) : (
                             users.map((u) => (
                                 <button

@@ -12,12 +12,16 @@ import {
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
 import { useFriendStore } from "@/stores/useFriendStore";
+import { useState } from "react";
+import AccountDialog from "./AccountDialog";
+import { useTranslation } from "react-i18next";
+import LanguageDialog from "./LanguageDialog";
 
 const NAV_TOP = [
-    { key: "main", icon: MessageSquare, label: "Tin nhắn" },
-    { key: "pending", icon: Inbox, label: "Tin nhắn đang chờ" },
-    { key: "contacts", icon: Users, label: "Danh bạ" },
-    { key: "profile", icon: User, label: "Cá nhân" },
+    { key: "main", icon: MessageSquare },
+    { key: "pending", icon: Inbox },
+    { key: "contacts", icon: Users },
+    { key: "profile", icon: User },
 ];
 
 const AppSidebar = ({ view, onChangeView }) => {
@@ -25,7 +29,12 @@ const AppSidebar = ({ view, onChangeView }) => {
     const pendingCount = useChatStore(
         (s) => s.conversations.filter((c) => c.myStatus === "pending").length
     );
+    const [accountOpen, setAccountOpen] = useState(false);
+
     const requestCount = useFriendStore((s) => s.received.length);
+
+    const { t } = useTranslation();
+    const [langOpen, setLangOpen] = useState(false);
 
     const handleLogout = async () => {
         await signOut();
@@ -41,15 +50,16 @@ const AppSidebar = ({ view, onChangeView }) => {
 
             <SidebarContent className="items-center px-1 pt-2">
                 <SidebarMenu className="gap-2">
-                    {NAV_TOP.map(({ key, icon: Icon, label }) => {
+                    {NAV_TOP.map(({ key, icon: Icon }) => {
                         const badge = key === "pending" ? pendingCount : key === "contacts" ? requestCount : 0;
                         return (
                             <SidebarMenuItem key={key}>
                                 <SidebarMenuButton
                                     isActive={view === key}
-                                    tooltip={label}
+                                    tooltip={t(`sidebar.${key}`)}
                                     onClick={() => {
                                         if (["main", "pending", "contacts"].includes(key)) onChangeView?.(key);
+                                        if (key === "profile") setAccountOpen(true);
                                     }}
                                     className="justify-center [&_svg]:size-5!"
                                 >
@@ -77,7 +87,7 @@ const AppSidebar = ({ view, onChangeView }) => {
                                 tabIndex={0}
                                 role="button"
                                 className="flex size-8 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer transition-colors"
-                                title="Cài đặt"
+                                title={t("sidebar.settings")}
                             >
                                 <Settings className="size-5" />
                             </div>
@@ -87,24 +97,36 @@ const AppSidebar = ({ view, onChangeView }) => {
                                 className="dropdown-content z-[100] menu p-2 shadow-2xl bg-base-200 text-base-content rounded-box w-56 mb-2 ml-2 border border-base-300"
                             >
                                 <li>
-                                    <button className="flex items-center gap-3 w-full">
+                                    <button
+                                        className="flex items-center gap-3 w-full"
+                                        onClick={() => {
+                                            document.activeElement?.blur();
+                                            setAccountOpen(true);
+                                        }}
+                                    >
                                         <User className="size-4" />
-                                        <span className="font-medium">Thông tin tài khoản</span>
+                                        <span className="font-medium">{t("sidebar.account")}</span>
                                     </button>
                                 </li>
                                 <li>
                                     <button className="flex items-center gap-3 w-full">
                                         <Settings className="size-4" />
-                                        <span className="font-medium">Cài đặt</span>
+                                        <span className="font-medium">{t("sidebar.settings")}</span>
                                     </button>
                                 </li>
 
                                 <div className="divider my-0"></div>
 
                                 <li>
-                                    <button className="flex items-center gap-3 w-full">
+                                    <button
+                                        className="flex items-center gap-3 w-full"
+                                        onClick={() => {
+                                            document.activeElement?.blur();
+                                            setLangOpen(true);
+                                        }}
+                                    >
                                         <Globe className="size-4" />
-                                        <span className="font-medium">Ngôn ngữ</span>
+                                        <span className="font-medium">{t("sidebar.language")}</span>
                                     </button>
                                 </li>
 
@@ -113,7 +135,7 @@ const AppSidebar = ({ view, onChangeView }) => {
                                 <li>
                                     <button className="flex items-center gap-3 w-full text-error hover:bg-error/10 hover:text-error transition-colors" onClick={handleLogout}>
                                         <LogOut className="size-4" />
-                                        <span className="font-medium">Đăng xuất</span>
+                                        <span className="font-medium">{t("sidebar.logout")}</span>
                                     </button>
                                 </li>
                             </ul>
@@ -121,6 +143,8 @@ const AppSidebar = ({ view, onChangeView }) => {
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>
+            <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+            <LanguageDialog open={langOpen} onOpenChange={setLangOpen} />
         </Sidebar>
     );
 };

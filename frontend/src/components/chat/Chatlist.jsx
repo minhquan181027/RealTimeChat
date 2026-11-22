@@ -1,20 +1,24 @@
+// src/components/chat/ChatList.jsx
 import { useState, useEffect } from "react";
 import { BellOff, MessageSquare, Users, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { useChatStore } from "@/stores/useChatStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { formatTime } from "@/utils/date";
+import { systemText } from "@/utils/systemMessage";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
 
 const NAV_TOP = [
-    { key: "main", icon: MessageSquare, label: "Tin nhắn" },
-    { key: "contacts", icon: Users, label: "Danh bạ" },
-    { key: "profile", icon: User, label: "Cá nhân" },
+    { key: "main", icon: MessageSquare },
+    { key: "contacts", icon: Users },
+    { key: "profile", icon: User },
 ];
 
 const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
+    const { t } = useTranslation();
     const { conversations } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const onlineUsers = useSocketStore((state) => state.onlineUsers);
@@ -29,13 +33,12 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
         return (
             <div className={cn("h-full w-full flex-col border-r bg-background md:w-[350px]", className)}>
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Không có cuộc trò chuyện nào
+                    {t("chatList.none")}
                 </div>
             </div>
         );
     }
 
-    // Tin chờ: myStatus === "pending". Cuộc trò chuyện cũ không có myStatus -> coi như chính thức
     const pendingCount = conversations.filter((c) => c.myStatus === "pending").length;
     const visible = conversations.filter((c) =>
         view === "pending" ? c.myStatus === "pending" : c.myStatus !== "pending"
@@ -47,7 +50,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
         let otherUserId = null;
 
         if (conversation.type === "group") {
-            name = conversation.group?.name || "Nhóm không tên";
+            name = conversation.group?.name || t("chatList.unnamedGroup");
             avatar = conversation.group?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
             const otherUser = conversation.participants.find((p) => {
@@ -56,39 +59,37 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             });
 
             const otherUserInfo = otherUser?.userId || otherUser;
-            name = otherUserInfo?.displayName || "Người dùng ẩn";
+            name = otherUserInfo?.displayName || t("chatList.hiddenUser");
             avatar = otherUserInfo?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
             otherUserId = otherUserInfo?._id?.toString();
         }
 
         let lastMessageText;
         if (conversation.lastMessage) {
-            const { type, content, senderId } = conversation.lastMessage;
+            const { type, content, senderId, meta } = conversation.lastMessage;
 
             if (type === "system") {
-                lastMessageText = content;
+                lastMessageText = systemText(t, meta, content);
             } else {
-                if (type === "image") lastMessageText = "[Hình ảnh]";
-                else if (type === "video") lastMessageText = "[Video]";
-                else lastMessageText = content || "[Tin nhắn]";
+                if (type === "image") lastMessageText = t("chatList.image");
+                else if (type === "video") lastMessageText = t("chatList.video");
+                else lastMessageText = content || t("chatList.message");
 
                 const senderIdStr = senderId?._id?.toString() || senderId?.toString() || senderId;
                 const isMe = senderIdStr === currentUser?._id?.toString();
                 const senderName = senderId?.userId?.displayName || senderId?.displayName;
 
-                if (isMe) lastMessageText = `Bạn: ${lastMessageText}`;
+                if (isMe) lastMessageText = `${t("chatList.you")}: ${lastMessageText}`;
                 else if (conversation.type === "group" && senderName) {
                     lastMessageText = `${senderName}: ${lastMessageText}`;
                 }
             }
         } else if (conversation.type === "group") {
-            lastMessageText = "Nhóm mới được tạo";
+            lastMessageText = t("chatList.newGroup");
         }
 
         const unreadCount =
-            conversation.unreadCounts?.[currentUser?._id] ??
-            conversation.unreadCount ??
-            0;
+            conversation.unreadCounts?.[currentUser?._id] ?? conversation.unreadCount ?? 0;
 
         return {
             name,
@@ -107,19 +108,18 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             <ChatListHeader
                 onPickUser={onPickUser}
                 onOpenConversation={onOpenConversation}
-                title={view === "pending" ? "Tin nhắn chờ" : "Đoạn chat"}
+                title={view === "pending" ? t("chatList.pendingTitle") : t("chatList.title")}
             />
 
-            {/* Chuyển view trên mobile (sidebar chỉ có trên PC) */}
             <div className="px-4 pb-2 md:hidden">
                 {view === "pending" ? (
                     <button onClick={() => onChangeView?.("main")} className="text-sm text-primary">
-                        ← Quay lại đoạn chat
+                        {t("chatList.backToChats")}
                     </button>
                 ) : (
                     pendingCount > 0 && (
                         <button onClick={() => onChangeView?.("pending")} className="text-sm text-primary">
-                            Tin nhắn đang chờ ({pendingCount})
+                            {t("chatList.pendingLink", { n: pendingCount })}
                         </button>
                     )
                 )}
@@ -128,7 +128,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             <div className="min-h-0 flex-1 overflow-y-auto">
                 {visible.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        {view === "pending" ? "Không có tin nhắn đang chờ" : "Chưa có cuộc trò chuyện nào"}
+                        {view === "pending" ? t("chatList.emptyPending") : t("chatList.empty")}
                     </div>
                 ) : (
                     visible.map((c) => {
@@ -145,27 +145,15 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                                 )}
                             >
                                 <div className="relative size-12 shrink-0">
-                                    <img
-                                        src={avatar}
-                                        alt={name}
-                                        className="size-full rounded-full object-cover"
-                                    />
+                                    <img src={avatar} alt={name} className="size-full rounded-full object-cover" />
                                     {c.type === "direct" && isOnline && (
-                                        <StatusBadge
-                                            status="online"
-                                            className="absolute bottom-0 right-0"
-                                        />
+                                        <StatusBadge status="online" className="absolute bottom-0 right-0" />
                                     )}
                                 </div>
 
                                 <div className="min-w-0 flex-1 border-b pb-3 md:border-none md:pb-0">
                                     <div className="flex items-center justify-between gap-2">
-                                        <h3
-                                            className={cn(
-                                                "truncate text-[15px]",
-                                                hasUnread ? "font-semibold" : "font-medium"
-                                            )}
-                                        >
+                                        <h3 className={cn("truncate text-[15px]", hasUnread ? "font-semibold" : "font-medium")}>
                                             {name}
                                         </h3>
                                         <span
@@ -182,9 +170,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                                         <p
                                             className={cn(
                                                 "truncate text-sm",
-                                                hasUnread
-                                                    ? "font-medium text-foreground"
-                                                    : "text-muted-foreground"
+                                                hasUnread ? "font-medium text-foreground" : "text-muted-foreground"
                                             )}
                                         >
                                             {lastMessageText}
@@ -209,7 +195,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             </div>
 
             <nav className="flex h-16 shrink-0 items-center justify-around border-t bg-background md:hidden">
-                {NAV_TOP.map(({ key, icon: Icon, label }) => (
+                {NAV_TOP.map(({ key, icon: Icon }) => (
                     <button
                         key={key}
                         onClick={() => key === "contacts" && onChangeView?.("contacts")}
@@ -219,7 +205,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                         )}
                     >
                         <Icon className="size-6" />
-                        <span>{label}</span>
+                        <span>{t(`sidebar.${key}`)}</span>
                     </button>
                 ))}
             </nav>

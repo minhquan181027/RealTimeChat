@@ -7,6 +7,7 @@ import ChatWindowHeader from "./ChatWindowHeader";
 import MessageItem from "./MessageItem";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "react-i18next";
 
 
 
@@ -25,6 +26,7 @@ const ChatWindow = ({
     const [selectedImage, setSelectedImage] = useState(null);
 
     const currentUser = useAuthStore((state) => state.user);
+    const { t } = useTranslation();
 
     // Những người đã xem (không tính bản thân)
     const seenByOthers = (chat?.seenBy || []).filter(
@@ -99,7 +101,7 @@ const ChatWindow = ({
             <div className={cn("flex-1 items-center justify-center bg-muted/40 text-muted-foreground", className)}>
                 <div className="text-center">
                     <MessageSquare className="mx-auto mb-3 size-14 opacity-30" />
-                    <p className="text-sm">Chọn một cuộc trò chuyện để bắt đầu</p>
+                    <p className="text-sm">{t("chatWindow.selectToStart")}</p>
                 </div>
             </div>
         );
@@ -116,16 +118,16 @@ const ChatWindow = ({
                     <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                         <UserPlus className="size-4 shrink-0" />
                         <span className="truncate">
-                            {friendStatus === "none" && "Gửi yêu cầu kết bạn tới người này"}
-                            {friendStatus === "sent" && "Bạn đã gửi lời mời kết bạn, đang chờ phản hồi"}
-                            {friendStatus === "received" && `${chat.name} đã gửi lời mời kết bạn cho bạn`}
+                            {friendStatus === "none" && t("chatWindow.friendNone")}
+                            {friendStatus === "sent" && t("chatWindow.friendSent")}
+                            {friendStatus === "received" && t("chatWindow.friendReceived", { name: chat.name })}
                         </span>
                     </div>
                     {friendStatus === "none" && (
-                        <Button variant="secondary" onClick={onSendFriend}>Gửi kết bạn</Button>
+                        <Button variant="secondary" onClick={onSendFriend}>{t("chatWindow.sendFriend")}</Button>
                     )}
                     {friendStatus === "received" && (
-                        <Button onClick={onAcceptFriend}>Chấp nhận</Button>
+                        <Button onClick={onAcceptFriend}>{t("contacts.accept")}</Button>
                     )}
                 </div>
             )}
@@ -137,7 +139,7 @@ const ChatWindow = ({
             >
                 {loading && hasMore && (
                     <div className="flex justify-center py-2 text-xs text-muted-foreground">
-                        Đang tải tin nhắn cũ...
+                        {t("chatWindow.loadingOld")}
                     </div>
                 )}
 
@@ -190,7 +192,7 @@ const ChatWindow = ({
                                                         }
                                                         alt="Seen"
                                                         className="size-[14px] rounded-full object-cover ring-1 ring-background"
-                                                        title="Đã xem"
+                                                        title={t("chatWindow.seen")}
                                                     />
                                                 );
                                             })}
@@ -208,21 +210,21 @@ const ChatWindow = ({
                 <div className="flex items-center justify-between gap-3 border-t bg-background px-4 py-3">
                     <p className="text-sm text-muted-foreground">
                         {chat.isGroup
-                            ? "Bạn được thêm vào nhóm này. Chấp nhận để tham gia hoặc xóa."
-                            : `${chat.name} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính.`}
+                            ? t("chatWindow.pendingGroup")
+                            : t("chatWindow.pendingDirect", { name: chat.name })}
                     </p>
                     <div className="flex shrink-0 gap-2">
                         <button
                             onClick={onDecline}
                             className="rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80"
                         >
-                            Xóa
+                            {t("common.delete")}
                         </button>
                         <button
                             onClick={onAccept}
                             className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                         >
-                            Chấp nhận
+                            {t("contacts.accept")}
                         </button>
                     </div>
                 </div>
@@ -244,7 +246,7 @@ const ChatWindow = ({
                     </button>
                     <img
                         src={selectedImage}
-                        alt="Xem ảnh"
+                        alt={t("chatWindow.viewImage")}
                         className="max-h-full max-w-full object-contain"
                         onClick={(e) => e.stopPropagation()}
                     />

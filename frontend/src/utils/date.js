@@ -1,76 +1,67 @@
+import i18n, { localeOf } from "@/i18n";
+
+const t = (key, opts) => i18n.t(key, opts);
+const weekdays = () => t("date.weekdays", { returnObjects: true });
+const timeOf = (d) => d.toLocaleTimeString(localeOf(), { hour: "2-digit", minute: "2-digit" });
+const fullDate = (d) =>
+    t("date.full", { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() });
 
 export const getMessageDivider = (currentDate, prevDate) => {
-    if (!prevDate) {
-        // Tin nhắn đầu tiên luôn hiện full ngày tháng
-        return `${currentDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} ${currentDate.getDate()} Tháng ${currentDate.getMonth() + 1}, ${currentDate.getFullYear()}`;
-    }
+    if (!prevDate) return `${timeOf(currentDate)} ${fullDate(currentDate)}`;
 
     const diffMs = currentDate.getTime() - prevDate.getTime();
-    const diffMins = diffMs / (1000 * 60);
+    if (diffMs / (1000 * 60) < 20) return null;
 
-    // 1. Nếu cách nhau dưới 20 phút -> Không hiện
-    if (diffMins < 20) return null;
+    const timeStr = timeOf(currentDate);
 
-    const timeStr = currentDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-
-    // 2. Nếu cùng ngày -> Chỉ hiện giờ (VD: 14:19)
     const isSameDay =
         currentDate.getDate() === prevDate.getDate() &&
         currentDate.getMonth() === prevDate.getMonth() &&
         currentDate.getFullYear() === prevDate.getFullYear();
+    if (isSameDay) return timeStr;
 
-    if (isSameDay) {
-        return timeStr;
+    if (diffMs / (1000 * 60 * 60 * 24) <= 7) {
+        return `${timeStr} ${weekdays()[currentDate.getDay()]}`;
     }
 
-    // 3. Nếu khác ngày nhưng trong vòng 1 tuần -> Hiện giờ + Thứ (VD: 22:48 T6)
-    const diffDays = diffMs / (1000 * 60 * 60 * 24);
-    if (diffDays <= 7) {
-        const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        return `${timeStr} ${days[currentDate.getDay()]}`;
-    }
-
-    // 4. Quá 1 tuần -> Hiện giờ + Ngày tháng năm (VD: 16:46 27 Tháng 10, 2026)
-    return `${timeStr} ${currentDate.getDate()} Tháng ${currentDate.getMonth() + 1}, ${currentDate.getFullYear()}`;
+    return `${timeStr} ${fullDate(currentDate)}`;
 };
 
 export const formatLastSeen = (lastActiveAt) => {
-    if (!lastActiveAt) return "Ngoại tuyến";
+    if (!lastActiveAt) return t("date.offline");
 
-    const now = new Date();
     const lastActive = new Date(lastActiveAt);
-    const diffInMins = Math.floor((now - lastActive) / (1000 * 60));
+    const diffInMins = Math.floor((new Date() - lastActive) / (1000 * 60));
 
-    if (diffInMins < 1) return "Vừa mới truy cập";
-    if (diffInMins < 60) return `Hoạt động ${diffInMins} phút trước`;
+    if (diffInMins < 1) return t("date.justNow");
+    if (diffInMins < 60) return t("date.activeMinutes", { n: diffInMins });
 
     const diffInHours = Math.floor(diffInMins / 60);
-    if (diffInHours < 24) return `Hoạt động ${diffInHours} giờ trước`;
+    if (diffInHours < 24) return t("date.activeHours", { n: diffInHours });
 
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `Hoạt động ${diffInDays} ngày trước`;
+    if (diffInDays < 7) return t("date.activeDays", { n: diffInDays });
 
-    return `Hoạt động ${lastActive.toLocaleDateString("vi-VN")}`;
+    return t("date.activeOn", { date: lastActive.toLocaleDateString(localeOf()) });
 };
 
 export const formatTime = (dateString, nowTime = Date.now()) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const now = new Date(nowTime); // 🆕 Dùng thời gian được truyền vào
+    const now = new Date(nowTime);
 
     const diffInMins = Math.floor((now - date) / (1000 * 60));
-    if (diffInMins < 1) return "Bây giờ";
-    if (diffInMins < 60) return `${diffInMins} phút`;
+    if (diffInMins < 1) return t("date.now");
+    if (diffInMins < 60) return t("date.minutes", { n: diffInMins });
 
     const diffInHours = Math.floor(diffInMins / 60);
-    if (diffInHours < 24 && date.getDate() === now.getDate()) return `${diffInHours} giờ`;
+    if (diffInHours < 24 && date.getDate() === now.getDate()) return t("date.hours", { n: diffInHours });
 
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
+    if (date.toDateString() === yesterday.toDateString()) return t("date.yesterday");
 
-    const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-    if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return days[date.getDay()];
+    if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return weekdays()[date.getDay()];
 
-    return `${date.getDate()}/${date.getMonth() + 1}`;
+    return t("date.short", { day: date.getDate(), month: date.getMonth() + 1 });
 };

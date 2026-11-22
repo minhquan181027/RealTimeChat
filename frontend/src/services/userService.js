@@ -10,4 +10,8 @@ export const userService = {
         const res = await api.get(`/user/${id}`);
         return res.data.user;
     },
+    updateMe: async (payload) => {
+        const res = await api.put("/user/me", payload);
+        return res.data.user;
+    },
 };

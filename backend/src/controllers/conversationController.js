@@ -361,14 +361,20 @@ export const addMembers = async (req, res) => {
         const message = await Message.create({
             conversationId: conversation._id,
             senderId: userId,
-            content: `${names} được ${req.user.displayName} thêm vào nhóm`,
+            content: `${names} được ${req.user.displayName} thêm vào nhóm`, // dự phòng cho tin cũ
             type: "system",
+            meta: {
+                action: "members_added",
+                actor: req.user.displayName,
+                targets: newUsers.map((u) => u.displayName),
+            },
         });
 
         conversation.set({
             lastMessage: {
                 _id: message._id.toString(),
                 content: message.content,
+                meta: message.meta,
                 type: "system",
                 senderId: userId,
                 createdAt: message.createdAt,

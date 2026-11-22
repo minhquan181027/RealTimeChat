@@ -1,10 +1,12 @@
 // src/components/chat/ContactsPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Search, UserCheck, UserPlus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFriendStore } from "@/stores/useFriendStore";
+import { localeOf } from "@/i18n";
 
 const avatarOf = (u) =>
     u?.avatarUrl ||
@@ -22,14 +24,15 @@ const letterOf = (name = "") => {
     return /[A-Z]/.test(c) ? c : "#";
 };
 
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "");
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString(localeOf()) : "");
 
 const MENU = [
-    { key: "friends", label: "Danh sách bạn bè", icon: UserCheck },
-    { key: "requests", label: "Lời mời kết bạn", icon: UserPlus },
+    { key: "friends", labelKey: "contacts.friendsList", icon: UserCheck },
+    { key: "requests", labelKey: "contacts.requests", icon: UserPlus },
 ];
 
 const FriendsPanel = ({ onOpenChat }) => {
+    const { t, i18n } = useTranslation();
     const friends = useFriendStore((s) => s.friends);
     const loading = useFriendStore((s) => s.loading);
     const [keyword, setKeyword] = useState("");
@@ -38,7 +41,7 @@ const FriendsPanel = ({ onOpenChat }) => {
         const q = keyword.trim().toLowerCase();
         const sorted = friends
             .filter((f) => (f.displayName || "").toLowerCase().includes(q))
-            .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "", "vi"));
+            .sort((a, b) => (a.displayName || "").localeCompare(b.displayName || "", i18n.language));
 
         const map = new Map();
         sorted.forEach((f) => {
@@ -47,18 +50,20 @@ const FriendsPanel = ({ onOpenChat }) => {
             map.get(l).push(f);
         });
         return [...map.entries()];
-    }, [friends, keyword]);
+    }, [friends, keyword, i18n.language]);
 
     return (
         <>
             <div className="p-4 pb-2">
-                <p className="mb-3 text-sm font-semibold">Bạn bè ({friends.length})</p>
+                <p className="mb-3 text-sm font-semibold">
+                    {t("contacts.friendsCount", { n: friends.length })}
+                </p>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 opacity-70" />
                     <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="Tìm bạn"
+                        placeholder={t("contacts.searchFriend")}
                         className="h-10 rounded-full border-none bg-muted pl-9 shadow-none"
                     />
                 </div>
@@ -66,10 +71,10 @@ const FriendsPanel = ({ onOpenChat }) => {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
                 {loading && friends.length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground">Đang tải...</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("common.loading")}</p>
                 ) : groups.length === 0 ? (
                     <p className="p-4 text-sm text-muted-foreground">
-                        {keyword ? "Không tìm thấy bạn bè" : "Bạn chưa có bạn bè nào"}
+                        {keyword ? t("contacts.noMatch") : t("contacts.noFriends")}
                     </p>
                 ) : (
                     groups.map(([letter, list]) => (
@@ -94,6 +99,7 @@ const FriendsPanel = ({ onOpenChat }) => {
 };
 
 const RequestsPanel = () => {
+    const { t } = useTranslation();
     const received = useFriendStore((s) => s.received);
     const sent = useFriendStore((s) => s.sent);
     const [busyId, setBusyId] = useState(null);
@@ -107,9 +113,11 @@ const RequestsPanel = () => {
 
     return (
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <p className="mb-3 text-sm font-semibold">Lời mời đã nhận ({received.length})</p>
+            <p className="mb-3 text-sm font-semibold">
+                {t("contacts.received", { n: received.length })}
+            </p>
             {received.length === 0 ? (
-                <p className="mb-6 text-sm text-muted-foreground">Không có lời mời nào</p>
+                <p className="mb-6 text-sm text-muted-foreground">{t("contacts.noRequests")}</p>
             ) : (
                 <div className="mb-6 grid gap-3 lg:grid-cols-2">
                     {received.map((r) => (
@@ -131,14 +139,14 @@ const RequestsPanel = () => {
                                     disabled={busyId === r._id}
                                     onClick={() => run(r._id, "declineRequest")}
                                 >
-                                    Từ chối
+                                    {t("contacts.decline")}
                                 </Button>
                                 <Button
                                     className="flex-1"
                                     disabled={busyId === r._id}
                                     onClick={() => run(r._id, "acceptRequest")}
                                 >
-                                    Chấp nhận
+                                    {t("contacts.accept")}
                                 </Button>
                             </div>
                         </div>
@@ -146,9 +154,11 @@ const RequestsPanel = () => {
                 </div>
             )}
 
-            <p className="mb-3 text-sm font-semibold">Lời mời đã gửi ({sent.length})</p>
+            <p className="mb-3 text-sm font-semibold">
+                {t("contacts.sent", { n: sent.length })}
+            </p>
             {sent.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Bạn chưa gửi lời mời nào</p>
+                <p className="text-sm text-muted-foreground">{t("contacts.noSent")}</p>
             ) : (
                 <div className="grid gap-3 lg:grid-cols-2">
                     {sent.map((r) => (
@@ -163,7 +173,7 @@ const RequestsPanel = () => {
                                 disabled={busyId === r._id}
                                 onClick={() => run(r._id, "declineRequest")}
                             >
-                                Thu hồi
+                                {t("contacts.withdraw")}
                             </Button>
                         </div>
                     ))}
@@ -174,6 +184,7 @@ const RequestsPanel = () => {
 };
 
 const ContactsPage = ({ onOpenChat, onBack }) => {
+    const { t } = useTranslation();
     const [tab, setTab] = useState("friends");
     const requestCount = useFriendStore((s) => s.received.length);
 
@@ -187,14 +198,14 @@ const ContactsPage = ({ onOpenChat, onBack }) => {
             {/* Menu trái (mobile: thanh tab ngang) */}
             <aside className="shrink-0 border-b md:w-96 md:border-b-0 md:border-r">
                 <div className="flex items-center gap-2 px-4 pt-4 md:pb-2">
-                    <button onClick={onBack} className="md:hidden" aria-label="Quay lại">
+                    <button onClick={onBack} className="md:hidden" aria-label={t("contacts.back")}>
                         <ArrowLeft className="size-5" />
                     </button>
-                    <h1 className="text-2xl font-bold">Danh bạ</h1>
+                    <h1 className="text-2xl font-bold">{t("contacts.title")}</h1>
                 </div>
 
                 <nav className="flex gap-1 p-2 md:flex-col">
-                    {MENU.map(({ key, label, icon: Icon }) => (
+                    {MENU.map(({ key, labelKey, icon: Icon }) => (
                         <button
                             key={key}
                             onClick={() => setTab(key)}
@@ -204,7 +215,7 @@ const ContactsPage = ({ onOpenChat, onBack }) => {
                             )}
                         >
                             <Icon className="size-4" />
-                            <span className="truncate">{label}</span>
+                            <span className="truncate">{t(labelKey)}</span>
                             {key === "requests" && requestCount > 0 && (
                                 <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
                                     {requestCount > 99 ? "99+" : requestCount}
@@ -219,7 +230,7 @@ const ContactsPage = ({ onOpenChat, onBack }) => {
             <section className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <div className="hidden border-b px-4 py-4 md:block">
                     <h2 className="text-base font-semibold">
-                        {tab === "friends" ? "Danh sách bạn bè" : "Lời mời kết bạn"}
+                        {tab === "friends" ? t("contacts.friendsList") : t("contacts.requests")}
                     </h2>
                 </div>
                 {tab === "friends" ? <FriendsPanel onOpenChat={onOpenChat} /> : <RequestsPanel />}

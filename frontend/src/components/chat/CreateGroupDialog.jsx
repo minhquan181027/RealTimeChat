@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Camera, Check, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useUserSearch } from "@/hooks/useUserSearch";
 import { friendService } from "@/services/friendService";
 import { chatService } from "@/services/chatService";
@@ -14,12 +16,13 @@ const avatarOf = (u) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName)}&background=random`;
 
 const CreateGroupBody = ({ onClose, onCreated }) => {
+    const { t } = useTranslation();
     const [name, setName] = useState("");
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [keyword, setKeyword] = useState("");
-    const [selected, setSelected] = useState({}); // { id: user }
-    const [friends, setFriends] = useState(null); // null = đang tải
+    const [selected, setSelected] = useState({});
+    const [friends, setFriends] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
     const { canSearch, searching, users } = useUserSearch(keyword);
@@ -33,7 +36,6 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
         return () => { cancelled = true; };
     }, []);
 
-    // Giải phóng URL xem trước
     useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
 
     const handleFile = (e) => {
@@ -68,7 +70,7 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
             onCreated?.(conversation._id);
             onClose();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Không tạo được nhóm");
+            toast.error(err.response?.data?.message || t("createGroup.failed"));
             setSubmitting(false);
         }
     };
@@ -76,12 +78,18 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
     const list = canSearch ? users : friends || [];
     const loading = canSearch ? searching : friends === null;
 
+    const hint = !name.trim()
+        ? t("createGroup.enterName")
+        : selectedList.length < 2
+            ? t("createGroup.pickMore", { n: 2 - selectedList.length })
+            : t("createGroup.selected", { n: selectedList.length });
+
     return (
         <>
             <div className="flex items-center gap-3 px-4 pb-3">
                 <label className="flex size-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border bg-muted">
                     {preview ? (
-                        <img src={preview} alt="Ảnh nhóm" className="size-full object-cover" />
+                        <img src={preview} alt={t("createGroup.photo")} className="size-full object-cover" />
                     ) : (
                         <Camera className="size-5 text-muted-foreground" />
                     )}
@@ -91,7 +99,7 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     maxLength={50}
-                    placeholder="Nhập tên nhóm..."
+                    placeholder={t("createGroup.namePlaceholder")}
                     className="border-0 border-b shadow-none focus-visible:ring-0"
                 />
             </div>
@@ -102,7 +110,7 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
                     <Input
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="Tìm bạn bè hoặc nhập tên/email để thêm người khác"
+                        placeholder={t("createGroup.search")}
                         className="h-10 rounded-full border-none bg-muted pl-9 shadow-none"
                     />
                 </div>
@@ -122,13 +130,13 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
 
             <div className="h-96 overflow-y-auto border-t">
                 <p className="px-4 pt-3 text-xs font-semibold text-muted-foreground">
-                    {canSearch ? "Kết quả tìm kiếm" : "Bạn bè"}
+                    {canSearch ? t("createGroup.results") : t("createGroup.friends")}
                 </p>
                 {loading ? (
-                    <p className="p-4 text-sm text-muted-foreground">Đang tải...</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("common.loading")}</p>
                 ) : list.length === 0 ? (
                     <p className="p-4 text-sm text-muted-foreground">
-                        {canSearch ? "Không tìm thấy người dùng" : "Bạn chưa có bạn bè, hãy tìm theo tên hoặc email"}
+                        {canSearch ? t("addFriend.notFound") : t("createGroup.noFriends")}
                     </p>
                 ) : (
                     list.map((u) => {
@@ -153,7 +161,7 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-medium">{u.displayName}</p>
                                     {stranger && (
-                                        <p className="text-xs text-muted-foreground">Chưa là bạn, nhóm vào tin nhắn chờ</p>
+                                        <p className="text-xs text-muted-foreground">{t("createGroup.stranger")}</p>
                                     )}
                                 </div>
                             </div>
@@ -162,31 +170,31 @@ const CreateGroupBody = ({ onClose, onCreated }) => {
                 )}
             </div>
 
-            <div className="flex justify-end gap-2 border-t bg-background px-4 py-3">
-                <button onClick={onClose} className="rounded-md bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80">
-                    Hủy
-                </button>
-                <button
-                    disabled={!canCreate}
-                    onClick={handleCreate}
-                    className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                    {submitting ? "Đang tạo..." : "Tạo nhóm"}
-                </button>
+            <div className="flex items-center justify-between gap-2 border-t bg-background px-4 py-3">
+                <p className="text-xs text-muted-foreground">{hint}</p>
+                <div className="flex gap-2">
+                    <Button variant="secondary" onClick={onClose}>{t("common.cancel")}</Button>
+                    <Button disabled={!canCreate} onClick={handleCreate}>
+                        {submitting ? t("createGroup.creating") : t("createGroup.create")}
+                    </Button>
+                </div>
             </div>
         </>
     );
 };
 
-const CreateGroupDialog = ({ open, onOpenChange, onCreated }) => (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-2xl">
-            <DialogHeader className="px-4 py-3">
-                <DialogTitle>Tạo nhóm</DialogTitle>
-            </DialogHeader>
-            <CreateGroupBody onClose={() => onOpenChange(false)} onCreated={onCreated} />
-        </DialogContent>
-    </Dialog>
-);
+const CreateGroupDialog = ({ open, onOpenChange, onCreated }) => {
+    const { t } = useTranslation();
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="gap-0 p-0 sm:max-w-2xl">
+                <DialogHeader className="px-4 py-3">
+                    <DialogTitle>{t("createGroup.title")}</DialogTitle>
+                </DialogHeader>
+                <CreateGroupBody onClose={() => onOpenChange(false)} onCreated={onCreated} />
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export default CreateGroupDialog;

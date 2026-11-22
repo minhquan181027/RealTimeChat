@@ -1,0 +1,209 @@
+{
+    "common": {
+        "cancel": "キャンセル",
+        "loading": "読み込み中...",
+        "delete": "削除",
+        "notSet": "未設定"
+    },
+    "gender": {
+        "male": "男性",
+        "female": "女性",
+        "other": "その他"
+    },
+    "sidebar": {
+        "main": "メッセージ",
+        "pending": "メッセージリクエスト",
+        "contacts": "連絡先",
+        "profile": "プロフィール",
+        "account": "アカウント情報",
+        "settings": "設定",
+        "language": "言語",
+        "logout": "ログアウト"
+    },
+    "language": {
+        "title": "言語を選択",
+        "autoTranslate": "メッセージを自動的にあなたの言語に翻訳する",
+        "autoTranslateHint": "メッセージのテキストはGoogleの翻訳サービスに送信されます"
+    },
+    "contacts": {
+        "title": "連絡先",
+        "friendsList": "友達リスト",
+        "requests": "友達リクエスト",
+        "back": "戻る",
+        "friendsCount": "友達 ({{n}})",
+        "searchFriend": "友達を検索",
+        "noMatch": "一致する友達が見つかりません",
+        "noFriends": "まだ友達がいません",
+        "received": "受信したリクエスト ({{n}})",
+        "noRequests": "リクエストはありません",
+        "decline": "拒否",
+        "accept": "承認",
+        "sent": "送信したリクエスト ({{n}})",
+        "noSent": "送信したリクエストはありません",
+        "withdraw": "キャンセル"
+    },
+    "chatInput": {
+        "placeholder": "メッセージを入力...",
+        "sendImage": "画像を送信",
+        "send": "送信",
+        "like": "いいね",
+        "onlyImages": "画像のみサポートされています。",
+        "maxSize": "画像は5MB以下である必要があります。"
+    },
+    "date": {
+        "weekdays": [
+            "日",
+            "月",
+            "火",
+            "水",
+            "木",
+            "金",
+            "土"
+        ],
+        "full": "{{year}}/{{month}}/{{day}}",
+        "short": "{{month}}/{{day}}",
+        "now": "今",
+        "minutes": "{{n}}分",
+        "hours": "{{n}}時間",
+        "yesterday": "昨日",
+        "offline": "オフライン",
+        "justNow": "たった今",
+        "activeNow": "オンライン",
+        "activeMinutes": "{{n}}分前にアクティブ",
+        "activeHours": "{{n}}時間前にアクティブ",
+        "activeDays": "{{n}}日前にアクティブ",
+        "activeOn": "{{date}}にアクティブ"
+    },
+    "chatList": {
+        "title": "チャット",
+        "pendingTitle": "メッセージリクエスト",
+        "search": "検索...",
+        "backToChats": "← チャットに戻る",
+        "pendingLink": "メッセージリクエスト ({{n}})",
+        "emptyPending": "メッセージリクエストはありません",
+        "empty": "まだ会話がありません",
+        "none": "会話なし",
+        "unnamedGroup": "無名のグループ",
+        "hiddenUser": "非表示のユーザー",
+        "image": "[画像]",
+        "video": "[動画]",
+        "message": "[メッセージ]",
+        "you": "あなた",
+        "newGroup": "新しいグループが作成されました",
+        "theme": "テーマ",
+        "addFriend": "友達を追加",
+        "createGroup": "グループを作成"
+    },
+    "chatWindow": {
+        "selectToStart": "会話を選択して開始",
+        "loadingOld": "過去のメッセージを読み込み中...",
+        "seen": "既読",
+        "someone": "誰か",
+        "retry": "再送信",
+        "imageAlt": "画像",
+        "viewImage": "画像を表示",
+        "friendNone": "この人に友達リクエストを送信する",
+        "friendSent": "友達リクエストを送信しました。返信を待っています",
+        "friendReceived": "{{name}}さんから友達リクエストが届きました",
+        "sendFriend": "友達を追加",
+        "pendingGroup": "あなたはこのグループに追加されました。参加を承認するか、削除してください。",
+        "pendingDirect": "{{name}}さんはまだあなたの友達ではありません。返信するか承認してメインチャットに移動してください。"
+    },
+    "header": {
+        "members": "{{n}}人のメンバー",
+        "addMember": "メンバーを追加"
+    },
+    "system": {
+        "membersAdded": "{{actor}}が{{targets}}をグループに追加しました"
+    },
+    "addFriend": {
+        "title": "友達を追加",
+        "placeholder": "名前またはメールアドレスを入力...",
+        "minChars": "検索するには2文字以上入力してください",
+        "searching": "検索中...",
+        "notFound": "ユーザーが見つかりません",
+        "friend": "友達",
+        "sentReq": "リクエスト送信済み",
+        "waiting": "返信を待っています",
+        "add": "友達を追加"
+    },
+    "createGroup": {
+        "title": "グループを作成",
+        "photo": "グループ写真",
+        "namePlaceholder": "グループ名を入力...",
+        "search": "友達を検索するか、名前/メールを入力して他の人を追加",
+        "results": "検索結果",
+        "friends": "友達",
+        "noFriends": "友達がいません。名前またはメールで検索してください",
+        "stranger": "友達ではありません。グループはメッセージリクエストに送られます",
+        "enterName": "グループ名を入力してください",
+        "pickMore": "あと{{n}}人選択してください",
+        "selected": "{{n}}人選択中",
+        "create": "グループを作成",
+        "creating": "作成中...",
+        "failed": "グループを作成できませんでした"
+    },
+    "addMembers": {
+        "title": "メンバーを追加",
+        "search": "友達を検索するか、名前/メールを入力",
+        "nobody": "追加できる人がいません",
+        "stranger": "友達ではありません。メッセージリクエストに送られます",
+        "add": "追加",
+        "adding": "追加中...",
+        "done": "メンバーが追加されました",
+        "failed": "メンバーを追加できませんでした"
+    },
+    "profile": {
+        "title": "アカウント情報",
+        "addFriend": "友達を追加",
+        "sentBtn": "リクエスト送信済み",
+        "acceptFriend": "リクエストを承認",
+        "call": "通話",
+        "message": "メッセージ",
+        "intro": "自己紹介",
+        "noIntro": "自己紹介はまだありません",
+        "personal": "個人情報",
+        "gender": "性別",
+        "dob": "生年月日",
+        "unfriend": "友達から削除",
+        "confirmUnfriend": "{{name}}さんを友達から削除しますか？"
+    },
+    "account": {
+        "title": "アカウント情報",
+        "email": "メールアドレス",
+        "phone": "電話番号",
+        "update": "更新",
+        "displayName": "表示名",
+        "phoneLabel": "電話番号",
+        "phonePlaceholder": "例: 09012345678",
+        "bio": "自己紹介",
+        "save": "保存",
+        "saving": "保存中...",
+        "changeAvatar": "アバターを変更",
+        "nameEmpty": "表示名を空にすることはできません",
+        "updated": "プロフィールが更新されました",
+        "updateFailed": "更新できませんでした",
+        "avatarChanged": "アバターが変更されました",
+        "avatarFailed": "アバターを変更できませんでした"
+    },
+    "call": {
+        "incoming": "ビデオ通話の着信...",
+        "calling": "発信中...",
+        "connecting": "接続中..."
+    },
+    "toast": {
+        "signUpOk": "登録に成功しました。",
+        "signInOk": "ログインに成功しました",
+        "signOutOk": "ログアウトしました",
+        "signOutFail": "ログアウトに失敗しました",
+        "fetchMeFail": "プロフィールを読み込めませんでした。",
+        "requestSent": "友達リクエストを送信しました",
+        "requestFailed": "リクエストを送信できませんでした",
+        "accepted": "友達リクエストを承認しました",
+        "acceptFailed": "リクエストを承認できませんでした",
+        "actionFailed": "アクションに失敗しました",
+        "removed": "友達から削除しました",
+        "removeFailed": "友達を削除できませんでした",
+        "callFirst": "通話する前にこの人にメッセージを送ってください"
+    }
+}

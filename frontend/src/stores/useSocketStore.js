@@ -71,6 +71,10 @@ export const useSocketStore = create((set, get) => ({
             useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
         });
 
+        socket.on("message_translated", (data) => {
+            useChatStore.getState().applyTranslation(data);
+        });
+
         socket.on("friend_request_new", () => {
             useFriendStore.getState().fetchRequests();
         });

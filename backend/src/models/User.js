@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         sparse: true
     },
+    language: { type: String, enum: ["vi", "en", "ja"], default: "vi" },
+    autoTranslate: { type: Boolean, default: true },
+    gender: { type: String, enum: ["male", "female", "other"] },
+    dateOfBirth: { type: Date },
+
     lastActiveAt: {
         type: Date,
         default: Date.now,

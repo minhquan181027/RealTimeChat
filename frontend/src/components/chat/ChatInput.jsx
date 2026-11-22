@@ -4,6 +4,7 @@ import { Paperclip, Smile, Send, ThumbsUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import EmojiPickerButton from "./EmojiPickerButton";
+import { useTranslation } from "react-i18next";
 
 const ChatInput = ({ onSend, onUpload, disabled = false }) => {
     const [text, setText] = useState("");
@@ -12,6 +13,8 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
 
 
     const isTyping = text.trim().length > 0;
+
+    const { t } = useTranslation();
 
     const handleEmojiSelect = (emoji) => {
         const cursor = inputRef.current?.selectionStart || text.length;
@@ -47,11 +50,11 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
         if (!file || disabled) return;
 
         if (!file.type.startsWith("image/")) {
-            alert("Chỉ hỗ trợ ảnh.");
+            alert(t("chatInput.onlyImages"));
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
-            alert("Ảnh tối đa 5MB.");
+            alert(t("chatInput.maxSize"));
             return;
         }
 
@@ -73,7 +76,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
                 size="icon"
 
                 onClick={handleFileClick}
-                title="Gửi ảnh"
+                title={t("chatInput.sendImage")}
                 disabled={disabled}
             >
                 <Paperclip className="size-5" />
@@ -83,7 +86,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
-                placeholder="Nhập tin nhắn..."
+                placeholder={t("chatInput.placeholder")}
                 className="h-10 flex-1 rounded-full border-none bg-muted shadow-none focus-visible:ring-0"
             />
 
@@ -94,7 +97,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
                     size="icon"
                     className="rounded-full transition-all duration-200"
                     onClick={submit}
-                    title="Gửi"
+                    title={t("chatInput.send")}
                     disabled={disabled}
                 >
                     <Send className="size-4" />
@@ -105,7 +108,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
                     variant="ghost"
                     className="rounded-full text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 transition-all duration-200"
                     onClick={handleLike}
-                    title="Thích"
+                    title={t("chatInput.like")}
                     disabled={disabled}
                 >
                     <ThumbsUp className="size-5" fill="currentColor" />

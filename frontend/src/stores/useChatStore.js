@@ -76,7 +76,23 @@ export const useChatStore = create(
                     set({ messageLoading: false });
                 }
             },
-
+            // ========================TRANSLATION============================
+            applyTranslation: ({ conversationId, messageId, lang, text, sourceLang }) => {
+                set((s) => {
+                    const list = s.messages[conversationId];
+                    if (!list) return s;
+                    return {
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: list.map((m) =>
+                                m._id?.toString() === messageId
+                                    ? { ...m, sourceLang, translations: { ...(m.translations || {}), [lang]: text } }
+                                    : m
+                            ),
+                        },
+                    };
+                });
+            },
             // ==================== HELPERS (private) ====================
             _replaceMessage: (conversationId, tempId, realMsg) => {
                 set((s) => {
@@ -93,6 +109,9 @@ export const useChatStore = create(
                     };
                 });
             },
+
+
+
             _setMyStatus: (conversationId, status) => {
                 set((s) => {
                     const target = s.conversations.find(

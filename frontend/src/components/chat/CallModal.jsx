@@ -1,33 +1,68 @@
 // src/components/chat/CallModal.jsx
 import { useEffect, useState } from "react";
-import { useCallStore } from "@/stores/useCallStore";
-import { useSocketStore } from "@/stores/useSocketStore";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { PhoneOff, Phone } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useCallStore } from "@/stores/useCallStore";
+import { useSocketStore } from "@/stores/useSocketStore";
 import { chatService } from "@/services/chatService";
 
+const LiveKitRoomWrapper = ({ roomName, onLeave }) => {
+    const { t } = useTranslation();
+    const [token, setToken] = useState(null);
+
+    useEffect(() => {
+        const fetchToken = async () => {
+            const data = await chatService.getLiveKitToken(roomName);
+            setToken(data.token);
+        };
+        fetchToken();
+    }, [roomName]);
+
+    if (!token) {
+        return (
+            <div className="flex h-full items-center justify-center text-white">
+                {t("call.connecting")}
+            </div>
+        );
+    }
+
+    return (
+        <LiveKitRoom
+            data-lk-theme="default"
+            token={token}
+            serverUrl={import.meta.env.VITE_LIVEKIT_URL}
+            connect={true}
+            video={true}
+            audio={true}
+            onDisconnected={onLeave}
+            style={{ height: "100dvh" }}
+        >
+            <VideoConference />
+        </LiveKitRoom>
+    );
+};
+
 const CallModal = () => {
+    const { t } = useTranslation();
     const { callState, isInCall, acceptCall, endCall } = useCallStore();
     const socket = useSocketStore((state) => state.socket);
 
-    // Nếu chưa có cuộc gọi nào thì không hiện gì cả
     if (!callState) return null;
 
     const isOutgoing = callState.type === "outgoing";
     const isIncoming = callState.type === "incoming";
 
-    // 🆕 Xử lý khi bấm "Nhận cuộc gọi"
     const handleAccept = () => {
         socket.emit("accept_call", {
-            targetUserId: callState.caller._id, // Gửi lại cho người gọi
+            targetUserId: callState.caller._id,
             roomName: callState.roomName,
         });
         acceptCall();
     };
 
-    // 🆕 Xử lý khi bấm "Từ chối" hoặc "Hủy"
     const handleEnd = () => {
         if (isIncoming) {
             socket.emit("reject_call", {
@@ -36,7 +71,7 @@ const CallModal = () => {
             });
         } else if (isOutgoing) {
             socket.emit("reject_call", {
-                targetUserId: callState.targetUserIds[0], // Tạm thời gửi cho người đầu tiên
+                targetUserId: callState.targetUserIds[0],
                 roomName: callState.roomName,
             });
         }
@@ -51,7 +86,6 @@ const CallModal = () => {
         );
     }
 
-    // Giao diện đang đổ chuông (Chưa kết nối LiveKit)
     return (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-gray-950 p-4 text-white">
             <div className="mb-10 flex flex-col items-center">
@@ -66,7 +100,7 @@ const CallModal = () => {
                     {isOutgoing ? callState.targetName : callState.caller?.displayName}
                 </h2>
                 <p className="mt-2 text-gray-400">
-                    {isOutgoing ? "Đang gọi..." : "Cuộc gọi video đến..."}
+                    {isOutgoing ? t("call.calling") : t("call.incoming")}
                 </p>
             </div>
 
@@ -87,41 +121,6 @@ const CallModal = () => {
                 )}
             </div>
         </div>
-    );
-};
-
-// Component con để fetch Token trước khi vào LiveKit
-const LiveKitRoomWrapper = ({ roomName, onLeave }) => {
-    const [token, setToken] = useState(null);
-
-    useEffect(() => {
-        const fetchToken = async () => {
-            const data = await chatService.getLiveKitToken(roomName);
-            setToken(data.token);
-        };
-        fetchToken();
-    }, [roomName]);
-
-    if (!token) {
-        return (
-            <div className="flex h-full items-center justify-center text-white">
-                Đang kết nối...
-            </div>
-        );
-    }
-    return (
-        <LiveKitRoom
-            data-lk-theme="default"
-            token={token}
-            serverUrl={import.meta.env.VITE_LIVEKIT_URL}
-            connect={true}
-            video={true}
-            audio={true}
-            onDisconnected={onLeave}
-            style={{ height: "100dvh" }}
-        >
-            <VideoConference />
-        </LiveKitRoom>
     );
 };
 

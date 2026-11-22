@@ -1,0 +1,209 @@
+{
+    "common": {
+        "cancel": "Cancel",
+        "loading": "Loading...",
+        "delete": "Delete",
+        "notSet": "Not set"
+    },
+    "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+    },
+    "sidebar": {
+        "main": "Messages",
+        "pending": "Message requests",
+        "contacts": "Contacts",
+        "profile": "Profile",
+        "account": "Account info",
+        "settings": "Settings",
+        "language": "Language",
+        "logout": "Log out"
+    },
+    "language": {
+        "title": "Choose language",
+        "autoTranslate": "Automatically translate messages into your language",
+        "autoTranslateHint": "Message text is sent to Google's translation service"
+    },
+    "contacts": {
+        "title": "Contacts",
+        "friendsList": "Friends list",
+        "requests": "Friend requests",
+        "back": "Back",
+        "friendsCount": "Friends ({{n}})",
+        "searchFriend": "Search friends",
+        "noMatch": "No friends found",
+        "noFriends": "You have no friends yet",
+        "received": "Received requests ({{n}})",
+        "noRequests": "No requests",
+        "decline": "Decline",
+        "accept": "Accept",
+        "sent": "Sent requests ({{n}})",
+        "noSent": "You haven't sent any requests",
+        "withdraw": "Withdraw"
+    },
+    "chatInput": {
+        "placeholder": "Type a message...",
+        "sendImage": "Send image",
+        "send": "Send",
+        "like": "Like",
+        "onlyImages": "Only images are supported.",
+        "maxSize": "Images must be 5MB or less."
+    },
+    "date": {
+        "weekdays": [
+            "Sun",
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat"
+        ],
+        "full": "{{month}}/{{day}}/{{year}}",
+        "short": "{{month}}/{{day}}",
+        "now": "Now",
+        "minutes": "{{n}}m",
+        "hours": "{{n}}h",
+        "yesterday": "Yesterday",
+        "offline": "Offline",
+        "justNow": "Just now",
+        "activeNow": "Active now",
+        "activeMinutes": "Active {{n}} min ago",
+        "activeHours": "Active {{n}} h ago",
+        "activeDays": "Active {{n}} d ago",
+        "activeOn": "Active {{date}}"
+    },
+    "chatList": {
+        "title": "Chats",
+        "pendingTitle": "Message requests",
+        "search": "Search...",
+        "backToChats": "← Back to chats",
+        "pendingLink": "Message requests ({{n}})",
+        "emptyPending": "No message requests",
+        "empty": "No conversations yet",
+        "none": "No conversations",
+        "unnamedGroup": "Unnamed group",
+        "hiddenUser": "Hidden user",
+        "image": "[Image]",
+        "video": "[Video]",
+        "message": "[Message]",
+        "you": "You",
+        "newGroup": "New group created",
+        "theme": "Theme",
+        "addFriend": "Add friend",
+        "createGroup": "Create group"
+    },
+    "chatWindow": {
+        "selectToStart": "Select a conversation to start",
+        "loadingOld": "Loading older messages...",
+        "seen": "Seen",
+        "someone": "Someone",
+        "retry": "Resend",
+        "imageAlt": "Image",
+        "viewImage": "View image",
+        "friendNone": "Send a friend request to this person",
+        "friendSent": "Friend request sent, waiting for a reply",
+        "friendReceived": "{{name}} sent you a friend request",
+        "sendFriend": "Add friend",
+        "pendingGroup": "You were added to this group. Accept to join or delete it.",
+        "pendingDirect": "{{name}} is not your friend yet. Reply or accept to move this to your main chats."
+    },
+    "header": {
+        "members": "{{n}} members",
+        "addMember": "Add members"
+    },
+    "system": {
+        "membersAdded": "{{actor}} added {{targets}} to the group"
+    },
+    "addFriend": {
+        "title": "Add friend",
+        "placeholder": "Enter name or email...",
+        "minChars": "Enter at least 2 characters to search",
+        "searching": "Searching...",
+        "notFound": "No users found",
+        "friend": "Friend",
+        "sentReq": "Request sent",
+        "waiting": "Waiting for your reply",
+        "add": "Add friend"
+    },
+    "createGroup": {
+        "title": "Create group",
+        "photo": "Group photo",
+        "namePlaceholder": "Enter group name...",
+        "search": "Search friends or enter a name/email to add others",
+        "results": "Search results",
+        "friends": "Friends",
+        "noFriends": "No friends yet, search by name or email",
+        "stranger": "Not a friend, group goes to message requests",
+        "enterName": "Enter a group name",
+        "pickMore": "Select {{n}} more",
+        "selected": "{{n}} selected",
+        "create": "Create group",
+        "creating": "Creating...",
+        "failed": "Could not create the group"
+    },
+    "addMembers": {
+        "title": "Add members",
+        "search": "Search friends or enter a name/email",
+        "nobody": "Nobody to add",
+        "stranger": "Not a friend, goes to message requests",
+        "add": "Add",
+        "adding": "Adding...",
+        "done": "Members added",
+        "failed": "Could not add members"
+    },
+    "profile": {
+        "title": "Account info",
+        "addFriend": "Add friend",
+        "sentBtn": "Request sent",
+        "acceptFriend": "Accept request",
+        "call": "Call",
+        "message": "Message",
+        "intro": "About",
+        "noIntro": "No bio yet",
+        "personal": "Personal info",
+        "gender": "Gender",
+        "dob": "Date of birth",
+        "unfriend": "Remove from friends",
+        "confirmUnfriend": "Remove {{name}} from your friends?"
+    },
+    "account": {
+        "title": "Account info",
+        "email": "Email",
+        "phone": "Phone",
+        "update": "Update",
+        "displayName": "Display name",
+        "phoneLabel": "Phone number",
+        "phonePlaceholder": "e.g. 0912345678",
+        "bio": "About",
+        "save": "Save",
+        "saving": "Saving...",
+        "changeAvatar": "Change avatar",
+        "nameEmpty": "Display name cannot be empty",
+        "updated": "Profile updated",
+        "updateFailed": "Could not update",
+        "avatarChanged": "Avatar changed",
+        "avatarFailed": "Could not change avatar"
+    },
+    "call": {
+        "incoming": "Incoming video call...",
+        "calling": "Calling...",
+        "connecting": "Connecting..."
+    },
+    "toast": {
+        "signUpOk": "Signed up successfully.",
+        "signInOk": "Signed in successfully",
+        "signOutOk": "Logged out",
+        "signOutFail": "Logout failed",
+        "fetchMeFail": "Could not load your profile.",
+        "requestSent": "Friend request sent",
+        "requestFailed": "Could not send the request",
+        "accepted": "Friend request accepted",
+        "acceptFailed": "Could not accept the request",
+        "actionFailed": "Action failed",
+        "removed": "Removed from friends",
+        "removeFailed": "Could not remove friend",
+        "callFirst": "Send this person a message before calling"
+    }
+}

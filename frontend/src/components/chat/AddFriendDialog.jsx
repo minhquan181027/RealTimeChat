@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,8 +11,8 @@ const avatarOf = (u) =>
     u.avatarUrl ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName)}&background=random`;
 
-// State nằm trong Body nên đóng dialog là tự reset
 const AddFriendBody = ({ onPickUser, onClose }) => {
+    const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const { canSearch, searching, users, patchUser } = useUserSearch(keyword);
 
@@ -20,9 +21,9 @@ const AddFriendBody = ({ onPickUser, onClose }) => {
         try {
             await friendService.sendRequest(user._id);
             patchUser(user._id, { relation: "sent" });
-            toast.success("Đã gửi lời mời kết bạn");
+            toast.success(t("toast.requestSent"));
         } catch (err) {
-            toast.error(err.response?.data?.message || "Không gửi được lời mời");
+            toast.error(err.response?.data?.message || t("toast.requestFailed"));
         }
     };
 
@@ -33,17 +34,17 @@ const AddFriendBody = ({ onPickUser, onClose }) => {
 
     const renderAction = (u) => {
         if (u.relation === "friend")
-            return <span className="text-xs text-muted-foreground">Bạn bè</span>;
+            return <span className="text-xs text-muted-foreground">{t("addFriend.friend")}</span>;
         if (u.relation === "sent")
-            return <span className="text-xs text-muted-foreground">Đã gửi lời mời</span>;
+            return <span className="text-xs text-muted-foreground">{t("addFriend.sentReq")}</span>;
         if (u.relation === "received")
-            return <span className="text-xs text-muted-foreground">Chờ bạn phản hồi</span>;
+            return <span className="text-xs text-muted-foreground">{t("addFriend.waiting")}</span>;
         return (
             <button
                 onClick={(e) => handleAdd(e, u)}
                 className="rounded-md border px-3 py-1 text-sm font-medium text-primary hover:bg-muted"
             >
-                Kết bạn
+                {t("addFriend.add")}
             </button>
         );
     };
@@ -57,7 +58,7 @@ const AddFriendBody = ({ onPickUser, onClose }) => {
                         autoFocus
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="Nhập tên hoặc email..."
+                        placeholder={t("addFriend.placeholder")}
                         className="h-10 rounded-full border-none bg-muted pl-9 pr-9 shadow-none"
                     />
                     {keyword && (
@@ -73,13 +74,11 @@ const AddFriendBody = ({ onPickUser, onClose }) => {
 
             <div className="h-96 overflow-y-auto border-t">
                 {!canSearch ? (
-                    <p className="p-4 text-sm text-muted-foreground">
-                        Nhập ít nhất 2 ký tự để tìm người dùng
-                    </p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("addFriend.minChars")}</p>
                 ) : searching ? (
-                    <p className="p-4 text-sm text-muted-foreground">Đang tìm...</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("addFriend.searching")}</p>
                 ) : users.length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground">Không tìm thấy người dùng</p>
+                    <p className="p-4 text-sm text-muted-foreground">{t("addFriend.notFound")}</p>
                 ) : (
                     users.map((u) => (
                         <div
@@ -102,15 +101,18 @@ const AddFriendBody = ({ onPickUser, onClose }) => {
     );
 };
 
-const AddFriendDialog = ({ open, onOpenChange, onPickUser }) => (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-xl">
-            <DialogHeader className="px-4 py-3">
-                <DialogTitle>Thêm bạn</DialogTitle>
-            </DialogHeader>
-            <AddFriendBody onPickUser={onPickUser} onClose={() => onOpenChange(false)} />
-        </DialogContent>
-    </Dialog>
-);
+const AddFriendDialog = ({ open, onOpenChange, onPickUser }) => {
+    const { t } = useTranslation();
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="gap-0 p-0 sm:max-w-xl">
+                <DialogHeader className="px-4 py-3">
+                    <DialogTitle>{t("addFriend.title")}</DialogTitle>
+                </DialogHeader>
+                <AddFriendBody onPickUser={onPickUser} onClose={() => onOpenChange(false)} />
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export default AddFriendDialog;

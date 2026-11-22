@@ -4,6 +4,7 @@ import Message from "../models/Message.js";
 import cloudinary from 'cloudinary';
 import multer from 'multer';
 import { getIO } from "../socket/index.js";
+import { translateForRecipients } from "../services/translateService.js";
 
 cloudinary.v2.config();
 
@@ -113,6 +114,7 @@ export const sendDirectMessage = async (req, res) => {
         await message.populate("senderId", "displayName avatarUrl");
 
         emitNewMessage(conversation, message);
+        translateForRecipients(conversation, message, req.user);
 
         return res.status(201).json({ message });
     } catch (error) {
@@ -164,6 +166,7 @@ export const sendGroupMessage = async (req, res) => {
         await message.populate("senderId", "displayName avatarUrl");
 
         emitNewMessage(conversation, message);
+        translateForRecipients(conversation, message, req.user);
 
         return res.status(201).json({ message });
     } catch (error) {

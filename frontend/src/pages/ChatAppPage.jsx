@@ -14,6 +14,7 @@ import { getMessageDivider } from "@/utils/date";
 import { toast } from "sonner";
 import ProfileDialog from "@/components/chat/ProfileDialog";
 import { useCallStore } from "@/stores/useCallStore";
+import { useTranslation } from "react-i18next";
 
 const ChatAppPage = () => {
     const [activeId, setActiveId] = useState(null);
@@ -35,6 +36,8 @@ const ChatAppPage = () => {
     const [profileUser, setProfileUser] = useState(null);
     const socket = useSocketStore((s) => s.socket);
     const startOutgoingCall = useCallStore((s) => s.startOutgoingCall);
+
+    const { t, i18n } = useTranslation();
 
     useEffect(() => {
         useChatStore.getState().fetchConversations();
@@ -94,7 +97,7 @@ const ChatAppPage = () => {
         let otherUserId = null;
 
         if (activeConversation.type === "group") {
-            name = activeConversation.group?.name || "Nhóm không tên";
+            name = activeConversation.group?.name || t("chatList.unnamedGroup");
             avatar = activeConversation.group?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
@@ -104,7 +107,7 @@ const ChatAppPage = () => {
             });
 
             const otherUserInfo = otherUser?.userId || otherUser;
-            name = otherUserInfo?.displayName || "Người dùng ẩn";
+            name = otherUserInfo?.displayName || t("chatList.hiddenUser");
             avatar = otherUserInfo?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 
@@ -152,8 +155,13 @@ const ChatAppPage = () => {
                 id: m._id,
                 mine: isMine,
                 text: m.content || "",
+                translation:
+                    !isMine && currentUser?.autoTranslate !== false
+                        ? m.translations?.[currentUser?.language || "vi"] || null
+                        : null,
                 imgURL: m.imgURL || null,
-                sender: m.senderId?.displayName || "Ai đó",
+                sender: m.senderId?.displayName || t("chatWindow.someone"),
+                meta: m.meta,
                 senderId: m.senderId?._id?.toString(),
                 type: m.type,
                 senderAvatar:
@@ -165,7 +173,7 @@ const ChatAppPage = () => {
                 failed: !!m._failed,
             };
         });
-    }, [messages, activeId, currentUser]);
+    }, [messages, activeId, currentUser, t]);
 
     const handleSelect = useCallback((id) => {
         setDraftUser(null);
@@ -225,7 +233,7 @@ const ChatAppPage = () => {
                 c.participants.some((p) => p._id?.toString() === user._id.toString())
         );
         if (!conv) {
-            toast.error("Hãy nhắn tin cho người này trước khi gọi");
+            toast.error(t("toast.callFirst"))
             return;
         }
         if (!socket || !currentUser) return;
@@ -242,7 +250,7 @@ const ChatAppPage = () => {
             targetAvatar: user.avatarUrl,
         });
         setProfileUser(null);
-    }, [conversations, socket, currentUser, startOutgoingCall]);
+    }, [conversations, socket, currentUser, startOutgoingCall, t]);
 
     const handleAccept = useCallback(async () => {
         if (!activeId) return;

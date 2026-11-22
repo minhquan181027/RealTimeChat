@@ -1,0 +1,209 @@
+{
+    "common": {
+        "cancel": "Hủy",
+        "loading": "Đang tải...",
+        "delete": "Xóa",
+        "notSet": "Chưa cập nhật"
+    },
+    "gender": {
+        "male": "Nam",
+        "female": "Nữ",
+        "other": "Khác"
+    },
+    "sidebar": {
+        "main": "Tin nhắn",
+        "pending": "Tin nhắn đang chờ",
+        "contacts": "Danh bạ",
+        "profile": "Cá nhân",
+        "account": "Thông tin tài khoản",
+        "settings": "Cài đặt",
+        "language": "Ngôn ngữ",
+        "logout": "Đăng xuất"
+    },
+    "language": {
+        "title": "Chọn ngôn ngữ",
+        "autoTranslate": "Tự động dịch tin nhắn sang ngôn ngữ của bạn",
+        "autoTranslateHint": "Nội dung tin nhắn sẽ được gửi tới dịch vụ dịch của Google"
+    },
+    "contacts": {
+        "title": "Danh bạ",
+        "friendsList": "Danh sách bạn bè",
+        "requests": "Lời mời kết bạn",
+        "back": "Quay lại",
+        "friendsCount": "Bạn bè ({{n}})",
+        "searchFriend": "Tìm bạn",
+        "noMatch": "Không tìm thấy bạn bè",
+        "noFriends": "Bạn chưa có bạn bè nào",
+        "received": "Lời mời đã nhận ({{n}})",
+        "noRequests": "Không có lời mời nào",
+        "decline": "Từ chối",
+        "accept": "Chấp nhận",
+        "sent": "Lời mời đã gửi ({{n}})",
+        "noSent": "Bạn chưa gửi lời mời nào",
+        "withdraw": "Thu hồi"
+    },
+    "chatInput": {
+        "placeholder": "Nhập tin nhắn...",
+        "sendImage": "Gửi ảnh",
+        "send": "Gửi",
+        "like": "Thích",
+        "onlyImages": "Chỉ hỗ trợ ảnh.",
+        "maxSize": "Ảnh tối đa 5MB."
+    },
+    "date": {
+        "weekdays": [
+            "CN",
+            "T2",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "T7"
+        ],
+        "full": "{{day}} Tháng {{month}}, {{year}}",
+        "short": "{{day}}/{{month}}",
+        "now": "Bây giờ",
+        "minutes": "{{n}} phút",
+        "hours": "{{n}} giờ",
+        "yesterday": "Hôm qua",
+        "offline": "Ngoại tuyến",
+        "justNow": "Vừa mới truy cập",
+        "activeNow": "Đang hoạt động",
+        "activeMinutes": "Hoạt động {{n}} phút trước",
+        "activeHours": "Hoạt động {{n}} giờ trước",
+        "activeDays": "Hoạt động {{n}} ngày trước",
+        "activeOn": "Hoạt động {{date}}"
+    },
+    "chatList": {
+        "title": "Đoạn chat",
+        "pendingTitle": "Tin nhắn chờ",
+        "search": "Tìm kiếm...",
+        "backToChats": "← Quay lại đoạn chat",
+        "pendingLink": "Tin nhắn đang chờ ({{n}})",
+        "emptyPending": "Không có tin nhắn đang chờ",
+        "empty": "Chưa có cuộc trò chuyện nào",
+        "none": "Không có cuộc trò chuyện nào",
+        "unnamedGroup": "Nhóm không tên",
+        "hiddenUser": "Người dùng ẩn",
+        "image": "[Hình ảnh]",
+        "video": "[Video]",
+        "message": "[Tin nhắn]",
+        "you": "Bạn",
+        "newGroup": "Nhóm mới được tạo",
+        "theme": "Giao diện",
+        "addFriend": "Thêm bạn",
+        "createGroup": "Tạo nhóm"
+    },
+    "chatWindow": {
+        "selectToStart": "Chọn một cuộc trò chuyện để bắt đầu",
+        "loadingOld": "Đang tải tin nhắn cũ...",
+        "seen": "Đã xem",
+        "someone": "Ai đó",
+        "retry": "Gửi lại",
+        "imageAlt": "Ảnh",
+        "viewImage": "Xem ảnh",
+        "friendNone": "Gửi yêu cầu kết bạn tới người này",
+        "friendSent": "Bạn đã gửi lời mời kết bạn, đang chờ phản hồi",
+        "friendReceived": "{{name}} đã gửi lời mời kết bạn cho bạn",
+        "sendFriend": "Gửi kết bạn",
+        "pendingGroup": "Bạn được thêm vào nhóm này. Chấp nhận để tham gia hoặc xóa.",
+        "pendingDirect": "{{name}} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính."
+    },
+    "header": {
+        "members": "{{n}} thành viên",
+        "addMember": "Thêm thành viên"
+    },
+    "system": {
+        "membersAdded": "{{targets}} được {{actor}} thêm vào nhóm"
+    },
+    "addFriend": {
+        "title": "Thêm bạn",
+        "placeholder": "Nhập tên hoặc email...",
+        "minChars": "Nhập ít nhất 2 ký tự để tìm người dùng",
+        "searching": "Đang tìm...",
+        "notFound": "Không tìm thấy người dùng",
+        "friend": "Bạn bè",
+        "sentReq": "Đã gửi lời mời",
+        "waiting": "Chờ bạn phản hồi",
+        "add": "Kết bạn"
+    },
+    "createGroup": {
+        "title": "Tạo nhóm",
+        "photo": "Ảnh nhóm",
+        "namePlaceholder": "Nhập tên nhóm...",
+        "search": "Tìm bạn bè hoặc nhập tên/email để thêm người khác",
+        "results": "Kết quả tìm kiếm",
+        "friends": "Bạn bè",
+        "noFriends": "Bạn chưa có bạn bè, hãy tìm theo tên hoặc email",
+        "stranger": "Chưa là bạn, nhóm vào tin nhắn chờ",
+        "enterName": "Nhập tên nhóm",
+        "pickMore": "Chọn thêm {{n}} người",
+        "selected": "Đã chọn {{n}} người",
+        "create": "Tạo nhóm",
+        "creating": "Đang tạo...",
+        "failed": "Không tạo được nhóm"
+    },
+    "addMembers": {
+        "title": "Thêm thành viên",
+        "search": "Tìm bạn bè hoặc nhập tên/email",
+        "nobody": "Không có ai để thêm",
+        "stranger": "Chưa là bạn, vào tin nhắn chờ",
+        "add": "Thêm",
+        "adding": "Đang thêm...",
+        "done": "Đã thêm thành viên",
+        "failed": "Không thêm được thành viên"
+    },
+    "profile": {
+        "title": "Thông tin tài khoản",
+        "addFriend": "Kết bạn",
+        "sentBtn": "Đã gửi lời mời",
+        "acceptFriend": "Chấp nhận kết bạn",
+        "call": "Gọi điện",
+        "message": "Nhắn tin",
+        "intro": "Giới thiệu",
+        "noIntro": "Chưa có giới thiệu",
+        "personal": "Thông tin cá nhân",
+        "gender": "Giới tính",
+        "dob": "Ngày sinh",
+        "unfriend": "Xóa khỏi danh sách bạn bè",
+        "confirmUnfriend": "Xóa {{name}} khỏi danh sách bạn bè?"
+    },
+    "account": {
+        "title": "Thông tin tài khoản",
+        "email": "Email",
+        "phone": "Điện thoại",
+        "update": "Cập nhật",
+        "displayName": "Tên hiển thị",
+        "phoneLabel": "Số điện thoại",
+        "phonePlaceholder": "VD: 0912345678",
+        "bio": "Giới thiệu",
+        "save": "Lưu",
+        "saving": "Đang lưu...",
+        "changeAvatar": "Đổi ảnh đại diện",
+        "nameEmpty": "Tên hiển thị không được để trống",
+        "updated": "Đã cập nhật thông tin",
+        "updateFailed": "Không cập nhật được",
+        "avatarChanged": "Đã đổi ảnh đại diện",
+        "avatarFailed": "Không đổi được ảnh"
+    },
+    "call": {
+        "incoming": "Cuộc gọi video đến...",
+        "calling": "Đang gọi...",
+        "connecting": "Đang kết nối..."
+    },
+    "toast": {
+        "signUpOk": "Đăng ký thành công.",
+        "signInOk": "Đăng nhập thành công",
+        "signOutOk": "Đã đăng xuất",
+        "signOutFail": "Lỗi đăng xuất",
+        "fetchMeFail": "Không lấy được thông tin người dùng.",
+        "requestSent": "Đã gửi lời mời kết bạn",
+        "requestFailed": "Không gửi được lời mời",
+        "accepted": "Đã chấp nhận lời mời kết bạn",
+        "acceptFailed": "Không chấp nhận được lời mời",
+        "actionFailed": "Thao tác thất bại",
+        "removed": "Đã xóa khỏi danh sách bạn bè",
+        "removeFailed": "Không xóa được bạn bè",
+        "callFirst": "Hãy nhắn tin cho người này trước khi gọi"
+    }
+}

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 import { friendService } from "@/services/friendService";
+import i18n from "@/i18n"
 
 export const useFriendStore = create((set, get) => ({
     friends: [],
@@ -35,9 +36,9 @@ export const useFriendStore = create((set, get) => ({
         try {
             await friendService.sendRequest(to);
             await get().fetchRequests();
-            toast.success("Đã gửi lời mời kết bạn");
+            toast.success(i18n.t("toast.requestSent"));
         } catch (error) {
-            toast.error(error.response?.data?.message || "Không gửi được lời mời");
+            toast.error(error.response?.data?.message || i18n.t("toast.requestFailed"));
         }
     },
 
@@ -50,9 +51,9 @@ export const useFriendStore = create((set, get) => ({
                     ? [...s.friends.filter((f) => f._id !== newFriend._id), newFriend]
                     : s.friends,
             }));
-            toast.success("Đã chấp nhận lời mời kết bạn");
+            toast.success(i18n.t("toast.accepted"));
         } catch (error) {
-            toast.error(error.response?.data?.message || "Không chấp nhận được lời mời");
+            toast.error(error.response?.data?.message || i18n.t("toast.acceptFailed"));
         }
     },
 
@@ -65,7 +66,7 @@ export const useFriendStore = create((set, get) => ({
                 sent: s.sent.filter((r) => r._id !== requestId),
             }));
         } catch (error) {
-            toast.error(error.response?.data?.message || "Thao tác thất bại");
+            toast.error(error.response?.data?.message || i18n.t("toast.actionFailed"));
         }
     },
 
@@ -73,10 +74,10 @@ export const useFriendStore = create((set, get) => ({
         try {
             await friendService.removeFriend(friendId);
             set((s) => ({ friends: s.friends.filter((f) => f._id !== friendId) }));
-            toast.success("Đã xóa khỏi danh sách bạn bè");
+            toast.success(i18n.t("toast.removed"));
             return true;
         } catch (error) {
-            toast.error(error.response?.data?.message || "Không xóa được bạn bè");
+            toast.error(error.response?.data?.message || i18n.t("toast.removeFailed"));
             return false;
         }
     },

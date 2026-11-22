@@ -15,6 +15,7 @@ const groupSchema = new mongoose.Schema({
 const lastMessageSchema = new mongoose.Schema({
     _id: { type: String },
     content: { type: String, default: null },
+    meta: { type: mongoose.Schema.Types.Mixed },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: null },
 

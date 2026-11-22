@@ -1,10 +1,12 @@
 // src/components/chat/MessageItem.jsx
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "cn";
+import { systemText } from "@/utils/systemMessage";
 
-// 🆕 Bọc React.memo: Nếu props không đổi, Component này sẽ KHÔNG render lại
 const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoad, onAvatarClick }) => {
-    // Kiểm tra xem tin nhắn chỉ có ảnh hay chỉ có emoji
+    const { t } = useTranslation();
+
     const isOnlyImage = m.imgURL && !m.text;
     const emojiRegex = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\s)+$/u;
     const isOnlyEmoji = m.text && emojiRegex.test(m.text.trim()) && m.text.trim().length <= 6;
@@ -13,7 +15,7 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
         return (
             <div className="my-1 flex justify-center">
                 <span className="rounded-full bg-muted-foreground/10 px-3 py-1 text-xs text-muted-foreground">
-                    {m.text}
+                    {systemText(t, m.meta, m.text)}
                 </span>
             </div>
         );
@@ -22,7 +24,9 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
     return (
         <div className={cn("flex items-end gap-2", m.mine ? "justify-end" : "justify-start")}>
             {!m.mine && (
-                <img src={m.senderAvatar || chat.avatar} alt=""
+                <img
+                    src={m.senderAvatar || chat.avatar}
+                    alt=""
                     onClick={() => onAvatarClick?.(m)}
                     className="size-9 shrink-0 cursor-pointer self-end rounded-full object-cover hover:opacity-80"
                 />
@@ -34,7 +38,7 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                     onClick={() => onRetry?.(m.id)}
                     className="mb-1 text-[11px] font-medium text-destructive hover:underline"
                 >
-                    Gửi lại
+                    {t("chatWindow.retry")}
                 </button>
             )}
 
@@ -47,12 +51,9 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                 )}
             >
                 {!m.mine && chat.isGroup && (
-                    <div className="mb-1 text-[13px] font-medium text-muted-foreground/60">
-                        {m.sender}
-                    </div>
+                    <div className="mb-1 text-[13px] font-medium text-muted-foreground/60">{m.sender}</div>
                 )}
 
-                {/* Render Ảnh */}
                 {m.imgURL && (
                     <div className={cn(
                         "relative w-fit max-w-full flex justify-center",
@@ -60,9 +61,9 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                     )}>
                         <img
                             src={m.imgURL}
-                            alt="Ảnh"
+                            alt={t("chatWindow.imageAlt")}
                             onClick={() => setSelectedImage(m.imgURL)}
-                            onLoad={onImageLoad} // �u Nhận hàm xử lý cuộn từ file Cha
+                            onLoad={onImageLoad}
                             className={cn(
                                 "max-h-[300px] max-w-full object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity",
                                 isOnlyImage ? "rounded-2xl" : "rounded-lg",
@@ -78,13 +79,14 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                     </div>
                 )}
 
-                {/* Render Chữ / Emoji */}
                 {m.text && (
-                    <p className={cn(
-                        "wrap-break-word text-foreground",
-                        isOnlyEmoji && "text-4xl"
-                    )}>
+                    <p className={cn("wrap-break-word text-foreground", isOnlyEmoji && "text-4xl")}>
                         {m.text}
+                    </p>
+                )}
+                {m.translation && !isOnlyEmoji && (
+                    <p className="mt-1.5 border-t border-border/60 pt-1.5 text-sm italic text-muted-foreground wrap-break-word">
+                        {m.translation}
                     </p>
                 )}
             </div>

@@ -21,9 +21,13 @@ const messageSchema = new mongoose.Schema({
 
     type: {
         type: String,
+
         enum: ["text", "image", "video", "file", "system"],
         default: "text"
-    }
+    },
+    meta: { type: mongoose.Schema.Types.Mixed },
+    translations: { type: Map, of: String },
+    sourceLang: { type: String },
 },
     {
         timestamps: true

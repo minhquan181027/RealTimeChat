@@ -1,20 +1,55 @@
 // src/components/chat/ChatInput.jsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Paperclip, Smile, Send, ThumbsUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import EmojiPickerButton from "./EmojiPickerButton";
 import { useTranslation } from "react-i18next";
 
-const ChatInput = ({ onSend, onUpload, disabled = false }) => {
+const ChatInput = ({ onSend, onUpload, onTyping, disabled = false }) => {
     const [text, setText] = useState("");
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
 
-
     const isTyping = text.trim().length > 0;
-
     const { t } = useTranslation();
+
+    const onTypingRef = useRef(onTyping);
+    const typingRef = useRef(false);
+    const lastEmitRef = useRef(0);
+    const idleRef = useRef(null);
+
+    useEffect(() => {
+        onTypingRef.current = onTyping;
+    });
+
+    const stopTyping = () => {
+        clearTimeout(idleRef.current);
+        if (typingRef.current) {
+            typingRef.current = false;
+            onTypingRef.current?.(false);
+        }
+    };
+
+    const handleChange = (e) => {
+        const value = e.target.value;
+        setText(value);
+
+        if (!value.trim()) {
+            stopTyping();
+            return;
+        }
+
+        // Bắn khi bắt đầu gõ, rồi làm mới mỗi 3 giây nếu vẫn đang gõ
+        if (!typingRef.current || Date.now() - lastEmitRef.current > 3000) {
+            typingRef.current = true;
+            lastEmitRef.current = Date.now();
+            onTypingRef.current?.(true);
+        }
+
+        clearTimeout(idleRef.current);
+        idleRef.current = setTimeout(stopTyping, 2000);
+    };
 
     const handleEmojiSelect = (emoji) => {
         const cursor = inputRef.current?.selectionStart || text.length;
@@ -30,6 +65,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
 
     const submit = () => {
         if (!isTyping || disabled) return;
+        onSend(text.trim());
         onSend(text.trim());
         setText("");
     };
@@ -84,7 +120,7 @@ const ChatInput = ({ onSend, onUpload, disabled = false }) => {
 
             <Input
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={handleChange}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 placeholder={t("chatInput.placeholder")}
                 className="h-10 flex-1 rounded-full border-none bg-muted shadow-none focus-visible:ring-0"

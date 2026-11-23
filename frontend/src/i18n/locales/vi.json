@@ -25,6 +25,11 @@
         "autoTranslate": "Tự động dịch tin nhắn sang ngôn ngữ của bạn",
         "autoTranslateHint": "Nội dung tin nhắn sẽ được gửi tới dịch vụ dịch của Google"
     },
+    "typing": {
+        "one": "Đang soạn tin...",
+        "named": "{{name}} đang soạn tin...",
+        "many": "Nhiều người đang soạn tin..."
+    },
     "contacts": {
         "title": "Danh bạ",
         "friendsList": "Danh sách bạn bè",

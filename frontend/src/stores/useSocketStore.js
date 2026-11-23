@@ -71,6 +71,10 @@ export const useSocketStore = create((set, get) => ({
             useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
         });
 
+        socket.on("typing", (data) => {
+            useChatStore.getState().setTyping(data);
+        });
+
         socket.on("message_translated", (data) => {
             useChatStore.getState().applyTranslation(data);
         });

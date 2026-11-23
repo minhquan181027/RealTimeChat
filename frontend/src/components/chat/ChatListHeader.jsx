@@ -7,17 +7,7 @@ import { useUserSearch } from "@/hooks/useUserSearch";
 import AddFriendDialog from "./AddFriendDialog";
 import CreateGroupDialog from "./CreateGroupDialog";
 
-const themes = [
-    { name: "Lemonade", colors: ["bg-yellow-400", "bg-blue-400", "bg-gray-200"] },
-    { name: "Night", colors: ["bg-blue-600", "bg-indigo-500", "bg-purple-400"] },
-    { name: "Coffee", colors: ["bg-orange-400", "bg-gray-400", "bg-gray-200"] },
-    { name: "Winter", colors: ["bg-white", "bg-blue-300", "bg-pink-400"] },
-    { name: "Dim", colors: ["bg-emerald-500", "bg-pink-500", "bg-red-500"] },
-    { name: "Nord", colors: ["bg-slate-300", "bg-sky-600", "bg-slate-500"] },
-    { name: "Cupcake", colors: ["bg-pink-200", "bg-purple-200", "bg-blue-200"] },
-    { name: "Synthwave", colors: ["bg-purple-900", "bg-pink-500", "bg-yellow-400"] },
-    { name: "Dracula", colors: ["bg-slate-800", "bg-purple-600", "bg-pink-500"] },
-];
+const themes = ["light", "dark", "messenger", "night", "dim", "cupcake", "bumblebee", "emerald", "corporate", "pastel"];
 
 const ChatListHeader = ({ onPickUser, onOpenConversation, title }) => {
     const { t } = useTranslation();
@@ -25,6 +15,7 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title }) => {
     const [addOpen, setAddOpen] = useState(false);
     const [groupOpen, setGroupOpen] = useState(false);
     const { canSearch, searching, users } = useUserSearch(keyword);
+    const [current, setCurrent] = useState(() => localStorage.getItem("theme") || "light");
 
     const clearSearch = () => setKeyword("");
 
@@ -33,10 +24,13 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title }) => {
         clearSearch();
     };
 
-    const handleThemeChange = (themeName) => {
-        document.documentElement.setAttribute("data-theme", themeName.toLowerCase());
-    };
 
+
+    const handleThemeChange = (name) => {
+        document.documentElement.setAttribute("data-theme", name);
+        localStorage.setItem("theme", name);
+        setCurrent(name);
+    };
     const openDialog = (setter) => {
         document.activeElement?.blur();
         setter(true);
@@ -62,17 +56,17 @@ const ChatListHeader = ({ onPickUser, onOpenConversation, title }) => {
                             className="dropdown-content menu z-[100] mt-2 w-56 rounded-box border border-base-300 bg-base-200 p-2 text-base-content shadow-2xl"
                         >
                             {themes.map((theme) => (
-                                <li key={theme.name}>
+                                <li key={theme}>
                                     <button
-                                        onClick={() => handleThemeChange(theme.name)}
-                                        className="flex w-full cursor-pointer items-center justify-between"
+                                        onClick={() => handleThemeChange(theme)}
+                                        className={`flex w-full cursor-pointer items-center justify-between capitalize ${current === theme ? "bg-base-300" : ""}`}
                                     >
-                                        <span className="text-sm font-medium">{theme.name}</span>
-                                        <div className="flex gap-1">
-                                            {theme.colors.map((color, idx) => (
-                                                <span key={idx} className={`h-2.5 w-2.5 rounded-full ${color}`}></span>
-                                            ))}
-                                        </div>
+                                        <span className="text-sm font-medium">{theme}</span>
+                                        <span data-theme={theme} className="flex gap-1 rounded-full bg-base-100 p-1">
+                                            <span className="size-3 rounded-full bg-primary" />
+                                            <span className="size-3 rounded-full bg-secondary" />
+                                            <span className="size-3 rounded-full bg-accent" />
+                                        </span>
                                     </button>
                                 </li>
                             ))}

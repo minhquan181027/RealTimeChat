@@ -8,15 +8,17 @@ import MessageItem from "./MessageItem";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "react-i18next";
+import { useChatStore } from "@/stores/useChatStore";
 
 
 
 const SCROLL_THRESHOLD = 80;
 
 const ChatWindow = ({
-    chat, messages, onBack, onSend, onRetry, onUpload, onAccept, onDecline,
+    chat, messages, onBack, onTyping, onSend, onRetry, onUpload, onAccept, onDecline,
     sending, uploading, onLoadMore, hasMore, loading, friendStatus, onSendFriend, onAcceptFriend, className, onAvatarClick
 }) => {
+
     const listRef = useRef(null);
     const prevScrollHeightRef = useRef(0);
     const firstLoadRef = useRef(true);
@@ -27,6 +29,10 @@ const ChatWindow = ({
 
     const currentUser = useAuthStore((state) => state.user);
     const { t } = useTranslation();
+
+    const typingMap = useChatStore((s) => s.typing[chat?.id]);
+    const typingNames = Object.values(typingMap || {});
+    const typingCount = typingNames.length;
 
     // Những người đã xem (không tính bản thân)
     const seenByOthers = (chat?.seenBy || []).filter(
@@ -94,7 +100,7 @@ const ChatWindow = ({
         const el = listRef.current;
         if (!el || !isStickyBottomRef.current) return;
         el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }, [seenCount]);
+    }, [seenCount, typingCount]);
 
     if (!chat) {
         return (
@@ -203,6 +209,31 @@ const ChatWindow = ({
                         </Fragment>
                     );
                 })}
+                {typingCount > 0 && (
+                    <div className="flex items-end gap-2 pt-3">
+                        {!chat.isGroup && (
+                            <img src={chat.avatar} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+                        )}
+                        <div className="rounded-2xl bg-background px-4 py-3 shadow-sm">
+                            <span className="flex gap-1">
+                                {[0, 150, 300].map((d) => (
+                                    <span
+                                        key={d}
+                                        className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
+                                        style={{ animationDelay: `${d}ms` }}
+                                    />
+                                ))}
+                            </span>
+                        </div>
+                        {chat.isGroup && (
+                            <span className="mb-2 text-xs text-muted-foreground">
+                                {typingCount === 1
+                                    ? t("typing.named", { name: typingNames[0] })
+                                    : t("typing.many")}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Banner cho cuộc trò chuyện đang chờ */}
@@ -230,7 +261,7 @@ const ChatWindow = ({
                 </div>
             )}
 
-            <ChatInput onSend={onSend} onUpload={onUpload} disabled={inputDisabled} />
+            <ChatInput onSend={onSend} onUpload={onUpload} onTyping={onTyping} disabled={inputDisabled} />
 
             {/* Modal xem ảnh */}
             {selectedImage && (

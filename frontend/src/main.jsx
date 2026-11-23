@@ -7,6 +7,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "light");
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>

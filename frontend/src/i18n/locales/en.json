@@ -25,6 +25,11 @@
         "autoTranslate": "Automatically translate messages into your language",
         "autoTranslateHint": "Message text is sent to Google's translation service"
     },
+    "typing": {
+        "one": "Typing...",
+        "named": "{{name}} is typing...",
+        "many": "Several people are typing..."
+    },
     "contacts": {
         "title": "Contacts",
         "friendsList": "Friends list",

@@ -4,6 +4,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
 
+const typingTimers = {};
+
 export const useChatStore = create(
     persist(
         (set, get) => ({
@@ -14,6 +16,7 @@ export const useChatStore = create(
             conLoading: false,
             messageLoading: false,
             sending: {},       // { conversationId: boolean }
+            typing: {},
 
             // ==================== ACTIVE ====================
             setActiveConversationId: (id) => set({ activeConversationId: id }),
@@ -28,6 +31,7 @@ export const useChatStore = create(
                     conLoading: false,
                     messageLoading: false,
                     sending: {},
+                    typing: {},
                 });
             },
 
@@ -193,6 +197,26 @@ export const useChatStore = create(
                 }
             },
 
+            setTyping: ({ conversationId, userId, displayName, isTyping }) => {
+                const key = `${conversationId}:${userId}`;
+                clearTimeout(typingTimers[key]);
+
+                set((s) => {
+                    const cur = { ...(s.typing[conversationId] || {}) };
+                    if (isTyping) cur[userId] = displayName;
+                    else delete cur[userId];
+                    return { typing: { ...s.typing, [conversationId]: cur } };
+                });
+
+                // Phòng khi mất sự kiện "dừng": tự tắt sau 5 giây
+                if (isTyping) {
+                    typingTimers[key] = setTimeout(
+                        () => get().setTyping({ conversationId, userId, isTyping: false }),
+                        5000
+                    );
+                }
+            },
+
             // ==================== SEND MESSAGE ====================
             sendMessage: async ({ conversationId, type, content, imgURL, senderUser }) => {
                 if (!conversationId || !senderUser) return;
@@ -260,6 +284,11 @@ export const useChatStore = create(
                 const isMyMessage = senderId?._id?.toString() === currentUserId;
                 const activeId = get().activeConversationId?.toString();
                 const isChatOpen = activeId === conversationId?.toString();
+                get().setTyping({
+                    conversationId,
+                    userId: senderId?._id?.toString() || senderId?.toString(),
+                    isTyping: false,
+                });
                 // Cuộc trò chuyện mới chưa có trong store (người lạ nhắn lần đầu, bị thêm vào nhóm)
                 const exists = get().conversations.some((c) => c._id?.toString() === conversationId?.toString());
                 if (!exists) {

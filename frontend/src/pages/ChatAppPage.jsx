@@ -279,6 +279,11 @@ const ChatAppPage = () => {
         }
     }, [friendInfo]);
 
+    const handleTyping = useCallback((isTyping) => {
+        if (!activeConversation || !socket) return;
+        socket.emit("typing", { conversationId: activeConversation._id, isTyping });
+    }, [activeConversation, socket]);
+
     const handleSend = useCallback(async (text) => {
         if (!currentUser) return;
 
@@ -375,6 +380,7 @@ const ChatAppPage = () => {
                             chat={activeChat}
                             messages={chatMessages}
                             onBack={handleBack}
+                            onTyping={handleTyping}
                             onSend={handleSend}
                             onRetry={handleRetry}
                             onUpload={handleUpload}

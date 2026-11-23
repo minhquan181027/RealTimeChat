@@ -19,7 +19,7 @@ const NAV_TOP = [
 
 const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
     const { t } = useTranslation();
-    const { conversations } = useChatStore();
+    const { conversations, typing } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
     const onlineUsers = useSocketStore((state) => state.onlineUsers);
     const [now, setNow] = useState(() => Date.now());
@@ -100,6 +100,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
             isMuted: conversation.isMuted || false,
             isOnline: conversation.type === "direct" && onlineUsers.includes(otherUserId),
             time: formatTime(conversation.lastMessageAt || conversation.updatedAt, now),
+            isTyping: Object.keys(typing[conversation._id] || {}).length > 0,
         };
     };
 
@@ -132,7 +133,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                     </div>
                 ) : (
                     visible.map((c) => {
-                        const { name, avatar, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time } =
+                        const { name, avatar, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time, isTyping } =
                             getConversationInfo(c);
 
                         return (
@@ -173,7 +174,11 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                                                 hasUnread ? "font-medium text-foreground" : "text-muted-foreground"
                                             )}
                                         >
-                                            {lastMessageText}
+                                            {isTyping ? (
+                                                <span className="italic text-primary">{t("typing.one")}</span>
+                                            ) : (
+                                                lastMessageText
+                                            )}
                                         </p>
 
                                         {hasUnread && (

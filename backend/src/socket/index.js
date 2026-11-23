@@ -2,12 +2,31 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleWare } from "../middlewares/socketMiddleware.js";
 import User from "../models/User.js";
-
+import mongoose from "mongoose";
+import Conversation from "../models/Conversation.js";
 
 let io;
 
 // 🆕 Dùng Map để lưu những người đang online: { userId: Set(socketId1, socketId2) }
 const onlineUsers = new Map();
+
+const memberCache = new Map(); // conversationId -> { at, members: [{ id, status }] }
+const MEMBER_TTL = 30_000;
+
+const getMembers = async (conversationId) => {
+    const hit = memberCache.get(conversationId);
+    if (hit && Date.now() - hit.at < MEMBER_TTL) return hit.members;
+
+    const conv = await Conversation.findById(conversationId).select("participants").lean();
+    if (!conv) return null;
+
+    const members = conv.participants.map((p) => ({
+        id: p.userId.toString(),
+        status: p.status || "accepted",
+    }));
+    memberCache.set(conversationId, { at: Date.now(), members });
+    return members;
+};
 
 export const initSocket = (httpServer) => {
     io = new Server(httpServer, {
@@ -30,7 +49,7 @@ export const initSocket = (httpServer) => {
         }
         onlineUsers.get(userId).add(socket.id);
 
-        // 🆕 Cho socket này vào phòng mang tên userId
+
         socket.join(userId);
 
         socket.emit("online-users", Array.from(onlineUsers.keys()));
@@ -44,16 +63,39 @@ export const initSocket = (httpServer) => {
             });
         });
 
-        // Khi người nhận bấm "Nhận"
+
         socket.on("accept_call", ({ targetUserId, roomName }) => {
             io.to(targetUserId).emit("call_accepted", { roomName });
         });
 
-        // Khi người nhận bấm "Từ chối" hoặc người gọi hủy
+
         socket.on("reject_call", ({ targetUserId, roomName }) => {
             io.to(targetUserId).emit("call_rejected", { roomName });
         });
 
+
+        socket.on("typing", async ({ conversationId, isTyping }) => {
+            try {
+                if (!mongoose.isValidObjectId(conversationId)) return;
+
+                const members = await getMembers(conversationId);
+                const me = members?.find((m) => m.id === userId);
+                if (!me || me.status !== "accepted") return;
+
+                // Chỉ báo cho người đã chấp nhận cuộc trò chuyện
+                members.forEach((m) => {
+                    if (m.id === userId || m.status !== "accepted") return;
+                    io.to(m.id).emit("typing", {
+                        conversationId,
+                        userId,
+                        displayName: user.displayName,
+                        isTyping: !!isTyping,
+                    });
+                });
+            } catch (err) {
+                console.error("Lỗi typing:", err);
+            }
+        });
 
         socket.on("disconnect", async () => {
             console.log(`🔴 socket disconnected: ${socket.id}`);

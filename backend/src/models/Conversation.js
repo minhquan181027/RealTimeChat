@@ -10,6 +10,7 @@ const groupSchema = new mongoose.Schema({
     name: { type: String, trim: true },
     avatarUrl: { type: String, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    deputyAdmin: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, { _id: false });
 
 const lastMessageSchema = new mongoose.Schema({
@@ -19,7 +20,7 @@ const lastMessageSchema = new mongoose.Schema({
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: null },
 
-    type: { type: String, enum: ["text", "image", "video", "file", "system"], default: "text" }
+    type: { type: String, enum: ["text", "image", "gif", "video", "file", "system"], default: "text" }
 }, { _id: false });
 
 const conversationSchema = new mongoose.Schema({

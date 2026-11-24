@@ -82,6 +82,14 @@ export const useSocketStore = create((set, get) => ({
             useChatStore.getState().applyTranslation(data);
         });
 
+        socket.on("message_reaction", (data) => {
+            useChatStore.getState().applyReaction(data);
+        });
+
+        socket.on("message_recalled", (data) => {
+            useChatStore.getState().applyRecall(data);
+        });
+
         socket.on("friend_request_new", () => {
             useFriendStore.getState().fetchRequests();
         });

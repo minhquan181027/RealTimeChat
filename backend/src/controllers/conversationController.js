@@ -401,6 +401,7 @@ export const addMembers = async (req, res) => {
 export const leaveGroup = async (req, res) => {
     try {
         const { conversationId } = req.params;
+        const { newAdminId } = req.body || {};
         const userId = req.user._id;
 
         if (!mongoose.isValidObjectId(conversationId)) {
@@ -426,6 +427,42 @@ export const leaveGroup = async (req, res) => {
         const remainingIds = remaining
             .filter((p) => p.status !== "declined")
             .map((p) => p.userId.toString());
+        const isAdminLeaving = conversation.group?.createdBy?.toString() === userId.toString();
+        const acceptedSuccessors = remaining.filter((p) => (p.status || "accepted") === "accepted");
+        const deputyId = conversation.group?.deputyAdmin?.toString();
+        let successorId = null;
+
+        if (isAdminLeaving && acceptedSuccessors.length > 0) {
+            let successor = acceptedSuccessors.find((p) => p.userId.toString() === deputyId);
+            if (!successor) {
+                if (!newAdminId || !mongoose.isValidObjectId(newAdminId)) {
+                    return res.status(400).json({ message: "Vui lòng chọn quản trị viên mới trước khi rời nhóm" });
+                }
+                successor = acceptedSuccessors.find(
+                    (p) => p.userId.toString() === newAdminId.toString()
+                );
+            }
+            if (!successor) {
+                return res.status(400).json({ message: "Quản trị viên mới phải là thành viên đã tham gia nhóm" });
+            }
+            successorId = successor.userId;
+            conversation.group.createdBy = successorId;
+            conversation.group.deputyAdmin = null;
+        } else if (!isAdminLeaving && deputyId === userId.toString()) {
+            conversation.group.deputyAdmin = null;
+        }
+
+        // Không còn thành viên đã tham gia để nhận quyền quản trị.
+        if (isAdminLeaving && acceptedSuccessors.length === 0) {
+            const affectedIds = conversation.participants
+                .filter((p) => p.status !== "declined")
+                .map((p) => p.userId.toString());
+            await Message.deleteMany({ conversationId: conversation._id });
+            await conversation.deleteOne();
+            invalidateMembers(conversationId);
+            affectedIds.forEach((id) => io.to(id).emit("conversation_removed", { conversationId }));
+            return res.sendStatus(204);
+        }
 
         // Không còn ai thì xóa hẳn nhóm
         if (remainingIds.length === 0) {
@@ -440,12 +477,25 @@ export const leaveGroup = async (req, res) => {
         conversation.seenBy.pull(userId);
         conversation.unreadCounts.delete(userId.toString());
 
+        const successorUser = isAdminLeaving
+            ? await User.findById(successorId).select("displayName").lean()
+            : null;
+        const meta = isAdminLeaving
+            ? {
+                action: "group_admin_transferred",
+                actor: req.user.displayName,
+                newAdmin: successorUser?.displayName || "",
+            }
+            : { action: "member_left", actor: req.user.displayName };
+
         const message = await Message.create({
             conversationId: conversation._id,
             senderId: userId,
-            content: `${req.user.displayName} đã rời nhóm`, // dự phòng cho client cũ
+            content: isAdminLeaving
+                ? `${req.user.displayName} đã rời nhóm và chuyển quyền quản trị cho ${meta.newAdmin}`
+                : `${req.user.displayName} đã rời nhóm`, // dự phòng cho client cũ
             type: "system",
-            meta: { action: "member_left", actor: req.user.displayName },
+            meta,
         });
 
         conversation.set({
@@ -473,6 +523,144 @@ export const leaveGroup = async (req, res) => {
         return res.sendStatus(204);
     } catch (error) {
         console.error("Lỗi leaveGroup:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const removeGroupMember = async (req, res) => {
+    try {
+        const { conversationId, memberId } = req.params;
+
+        if (!mongoose.isValidObjectId(conversationId) || !mongoose.isValidObjectId(memberId)) {
+            return res.status(400).json({ message: "ID cuộc trò chuyện hoặc thành viên không hợp lệ" });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation || conversation.type !== "group") {
+            return res.status(404).json({ message: "Không tìm thấy nhóm" });
+        }
+
+        const adminId = conversation.group?.createdBy?.toString();
+        if (!adminId || adminId !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Chỉ quản trị viên mới có thể xóa thành viên" });
+        }
+        if (memberId === adminId) {
+            return res.status(400).json({ message: "Quản trị viên không thể tự xóa mình" });
+        }
+
+        const target = conversation.participants.find(
+            (p) => p.userId.toString() === memberId && p.status !== "declined"
+        );
+        if (!target) {
+            return res.status(404).json({ message: "Không tìm thấy thành viên trong nhóm" });
+        }
+
+        const targetUser = await User.findById(memberId).select("displayName").lean();
+        if (!targetUser) {
+            return res.status(404).json({ message: "Không tìm thấy thành viên trong nhóm" });
+        }
+
+        const message = await Message.create({
+            conversationId: conversation._id,
+            senderId: req.user._id,
+            content: `${targetUser.displayName} bị ${req.user.displayName} xóa khỏi nhóm`,
+            type: "system",
+            meta: {
+                action: "member_removed",
+                actor: req.user.displayName,
+                target: targetUser.displayName,
+            },
+        });
+
+        conversation.participants = conversation.participants.filter(
+            (p) => p.userId.toString() !== memberId
+        );
+        if (conversation.group?.deputyAdmin?.toString() === memberId) {
+            conversation.group.deputyAdmin = null;
+        }
+        conversation.seenBy.pull(memberId);
+        conversation.unreadCounts.delete(memberId);
+        conversation.set({
+            lastMessage: {
+                _id: message._id.toString(),
+                content: message.content,
+                type: "system",
+                meta: message.meta,
+                senderId: req.user._id,
+                createdAt: message.createdAt,
+            },
+            lastMessageAt: message.createdAt,
+        });
+        await conversation.save();
+        invalidateMembers(conversationId);
+        await message.populate("senderId", "displayName avatarUrl");
+
+        const io = getIO();
+        io.to(memberId).emit("conversation_removed", { conversationId });
+        conversation.participants
+            .filter((p) => p.status !== "declined")
+            .forEach((p) => {
+                io.to(p.userId.toString()).emit("new_message", message);
+                io.to(p.userId.toString()).emit("conversation_new");
+            });
+
+        await conversation.populate(populateOptions);
+        return res.status(200).json({ conversation: formatConversation(conversation, req.user._id) });
+    } catch (error) {
+        console.error("Lỗi xóa thành viên khỏi nhóm:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const setGroupDeputyAdmin = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { memberId } = req.body || {};
+
+        if (!mongoose.isValidObjectId(conversationId)) {
+            return res.status(400).json({ message: "conversationId không hợp lệ" });
+        }
+        if (memberId !== null && !mongoose.isValidObjectId(memberId)) {
+            return res.status(400).json({ message: "Thành viên không hợp lệ" });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation || conversation.type !== "group") {
+            return res.status(404).json({ message: "Không tìm thấy nhóm" });
+        }
+
+        const adminId = conversation.group?.createdBy?.toString();
+        if (!adminId || adminId !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Chỉ quản trị viên mới có thể chỉ định phó quản trị viên" });
+        }
+
+        if (memberId) {
+            if (memberId.toString() === adminId) {
+                return res.status(400).json({ message: "Quản trị viên không thể tự chỉ định mình" });
+            }
+            const candidate = conversation.participants.find(
+                (p) =>
+                    p.userId.toString() === memberId.toString() &&
+                    (p.status || "accepted") === "accepted"
+            );
+            if (!candidate) {
+                return res.status(400).json({ message: "Phó quản trị viên phải là thành viên đã tham gia nhóm" });
+            }
+            conversation.group.deputyAdmin = candidate.userId;
+        } else {
+            conversation.group.deputyAdmin = null;
+        }
+
+        await conversation.save();
+        const io = getIO();
+        conversation.participants
+            .filter((p) => p.status !== "declined")
+            .forEach((p) => io.to(p.userId.toString()).emit("conversation_new"));
+
+        await conversation.populate(populateOptions);
+        return res.status(200).json({ conversation: formatConversation(conversation, req.user._id) });
+    } catch (error) {
+        console.error("Lỗi cập nhật phó quản trị viên:", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

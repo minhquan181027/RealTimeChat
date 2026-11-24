@@ -1,6 +1,6 @@
 // src/components/chat/ChatList.jsx
 import { useState, useEffect } from "react";
-import { BellOff, MessageSquare, Users, User } from "lucide-react";
+import { BellOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { useChatStore } from "@/stores/useChatStore";
@@ -10,12 +10,6 @@ import { formatTime } from "@/utils/date";
 import { systemText } from "@/utils/systemMessage";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
-
-const NAV_TOP = [
-    { key: "main", icon: MessageSquare },
-    { key: "contacts", icon: Users },
-    { key: "profile", icon: User },
-];
 
 const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
     const { t } = useTranslation();
@@ -72,6 +66,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                 lastMessageText = systemText(t, meta, content);
             } else {
                 if (type === "image") lastMessageText = t("chatList.image");
+                else if (type === "gif") lastMessageText = t("chatList.gif");
                 else if (type === "video") lastMessageText = t("chatList.video");
                 else lastMessageText = content || t("chatList.message");
 
@@ -112,19 +107,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                 title={view === "pending" ? t("chatList.pendingTitle") : t("chatList.title")}
             />
 
-            <div className="px-4 pb-2 md:hidden">
-                {view === "pending" ? (
-                    <button onClick={() => onChangeView?.("main")} className="text-sm text-primary">
-                        {t("chatList.backToChats")}
-                    </button>
-                ) : (
-                    pendingCount > 0 && (
-                        <button onClick={() => onChangeView?.("pending")} className="text-sm text-primary">
-                            {t("chatList.pendingLink", { n: pendingCount })}
-                        </button>
-                    )
-                )}
-            </div>
+
 
             <div className="min-h-0 flex-1 overflow-y-auto">
                 {visible.length === 0 ? (
@@ -198,22 +181,6 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                     })
                 )}
             </div>
-
-            <nav className="flex h-16 shrink-0 items-center justify-around border-t bg-background md:hidden">
-                {NAV_TOP.map(({ key, icon: Icon }) => (
-                    <button
-                        key={key}
-                        onClick={() => key === "contacts" && onChangeView?.("contacts")}
-                        className={cn(
-                            "flex flex-col items-center gap-0.5 text-[10px]",
-                            key === "main" ? "text-primary" : "text-muted-foreground"
-                        )}
-                    >
-                        <Icon className="size-6" />
-                        <span>{t(`sidebar.${key}`)}</span>
-                    </button>
-                ))}
-            </nav>
         </div>
     );
 };

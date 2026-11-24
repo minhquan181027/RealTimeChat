@@ -19,7 +19,7 @@ export const shouldTranslate = (text) => {
     const s = text.trim();
 
     // 1. Độ dài: Quá ngắn hoặc quá dài thì bỏ qua
-    if (s.length < 3 || s.length > 1000) return false;
+    if ([...s].length < 2 || s.length > 1000) return false;
 
     // 2. Bỏ qua nếu chỉ có link
     if (/^(https?:\/\/\S+\s*)+$/i.test(s)) return false;
@@ -29,7 +29,13 @@ export const shouldTranslate = (text) => {
 
     // 🆕 4. CHỐNG SPAM KÝ TỰ LẶP LẠI (Ví dụ: "hiiiiii", "aaaaa")
     // Nếu có bất kỳ ký tự nào lặp lại 4 lần liên tiếp -> Bỏ qua
-    if (/(.)\1{3,}/.test(s)) return false;
+    if (/(.)\1{3,}/u.test(s)) return false;
+
+    // Latin-vowel heuristics below do not apply to Japanese, Korean, Arabic, and other scripts.
+    const hasNonLatinLetter = [...s].some(
+        (character) => /\p{L}/u.test(character) && !/\p{Script=Latin}/u.test(character)
+    );
+    if (hasNonLatinLetter) return true;
 
     // 🆕 5. CHỐNG GÕ BẬY (Không có nguyên âm)
     // Tiếng Việt và tiếng Anh bắt buộc phải có nguyên âm. 

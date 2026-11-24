@@ -6,7 +6,9 @@ import {
     acceptConversation,
     declineConversation,
     addMembers,
-    leaveGroup
+    leaveGroup,
+    removeGroupMember,
+    setGroupDeputyAdmin
 } from '../controllers/conversationController.js'
 
 
@@ -19,5 +21,7 @@ router.put("/:conversationId/read", markAsRead);
 router.put("/:conversationId/accept", acceptConversation);
 router.put("/:conversationId/decline", declineConversation);
 router.post("/:conversationId/members", addMembers);
+router.delete("/:conversationId/members/:memberId", removeGroupMember);
+router.put("/:conversationId/deputy-admin", setGroupDeputyAdmin);
 router.post("/:conversationId/leave", leaveGroup);
 export default router;

@@ -29,6 +29,13 @@
         "title": "Thông tin nhóm",
         "close": "Đóng",
         "members": "Thành viên nhóm",
+        "admin": "Quản trị viên",
+        "removeMember": "Xóa thành viên",
+        "confirmRemove": "Bạn chắc chắn muốn xóa {{name}} khỏi nhóm?",
+        "remove": "Xóa",
+        "removing": "Đang xóa...",
+        "memberRemoved": "Đã xóa thành viên khỏi nhóm",
+        "removeFailed": "Không xóa được thành viên",
         "photos": "Ảnh/Video",
         "noPhotos": "Chưa có ảnh/video nào được chia sẻ trong hội thoại này",
         "files": "File",
@@ -40,7 +47,19 @@
         "leave": "Rời nhóm",
         "confirmLeave": "Bạn chắc chắn muốn rời nhóm “{{name}}”?",
         "leaving": "Đang rời...",
-        "leaveFailed": "Không rời được nhóm"
+        "leaveFailed": "Không rời được nhóm",
+        "newAdmin": "Chọn quản trị viên mới",
+        "selectAdmin": "Chọn một thành viên",
+        "noAdminCandidate": "Không còn thành viên đã tham gia để nhận quyền. Rời nhóm sẽ xóa nhóm.",
+        "deputyAdmin": "Phó quản trị viên",
+        "memberActions": "Thao tác thành viên",
+        "makeDeputy": "Chọn làm phó quản trị viên",
+        "removeDeputy": "Gỡ quyền phó quản trị viên",
+        "kick": "Xóa khỏi nhóm",
+        "deputyAssigned": "Đã chỉ định phó quản trị viên",
+        "deputyRemoved": "Đã gỡ quyền phó quản trị viên",
+        "deputyUpdateFailed": "Không cập nhật được phó quản trị viên",
+        "deputyWillPromote": "{{name}} sẽ trở thành quản trị viên mới khi bạn rời nhóm"
     },
     "typing": {
         "one": "Đang soạn tin...",
@@ -70,7 +89,13 @@
         "send": "Gửi",
         "like": "Thích",
         "onlyImages": "Chỉ hỗ trợ ảnh.",
-        "maxSize": "Ảnh tối đa 5MB."
+        "maxSize": "Ảnh tối đa 5MB.",
+        "gifPicker": "Chọn GIF",
+        "searchGifs": "Tìm GIF...",
+        "sendGif": "Gửi GIF",
+        "noGifs": "Không tìm thấy GIF",
+        "gifApiKeyMissing": "Cần cấu hình GIPHY API key trong frontend/.env.development.",
+        "gifSearchFailed": "Không thể tải GIF. Hãy thử lại sau."
     },
     "date": {
         "weekdays": [
@@ -108,6 +133,7 @@
         "unnamedGroup": "Nhóm không tên",
         "hiddenUser": "Người dùng ẩn",
         "image": "[Hình ảnh]",
+        "gif": "[GIF]",
         "video": "[Video]",
         "message": "[Tin nhắn]",
         "you": "Bạn",
@@ -123,13 +149,30 @@
         "someone": "Ai đó",
         "retry": "Gửi lại",
         "imageAlt": "Ảnh",
+        "gifLoadFailed": "Không thể tải GIF từ GIPHY.",
         "viewImage": "Xem ảnh",
         "friendNone": "Gửi yêu cầu kết bạn tới người này",
         "friendSent": "Bạn đã gửi lời mời kết bạn, đang chờ phản hồi",
         "friendReceived": "{{name}} đã gửi lời mời kết bạn cho bạn",
         "sendFriend": "Gửi kết bạn",
         "pendingGroup": "Bạn được thêm vào nhóm này. Chấp nhận để tham gia hoặc xóa.",
-        "pendingDirect": "{{name}} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính."
+        "pendingDirect": "{{name}} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính.",
+        "react": "Thả biểu tượng cảm xúc",
+        "more": "Thêm",
+        "copyMessage": "Sao chép",
+        "copyImage": "Sao chép",
+        "saveImage": "Lưu hình ảnh",
+        "translate": "Dịch",
+        "viewOriginal": "Xem bản gốc",
+        "recall": "Thu hồi",
+        "recalled": "Tin nhắn đã được thu hồi",
+        "copied": "Đã sao chép",
+        "copyFailed": "Không thể sao chép tin nhắn",
+        "copyImageFailed": "Không thể sao chép hình ảnh",
+        "downloadFailed": "Không thể tải hình ảnh",
+        "recallFailed": "Không thể thu hồi tin nhắn",
+        "reactionFailed": "Không thể thả biểu tượng cảm xúc",
+        "translateFailed": "Không thể dịch tin nhắn"
     },
     "header": {
         "members": "{{n}} thành viên",
@@ -137,7 +180,9 @@
     },
     "system": {
         "membersAdded": "{{targets}} được {{actor}} thêm vào nhóm",
-        "memberLeft": "{{actor}} đã rời nhóm"
+        "memberLeft": "{{actor}} đã rời nhóm",
+        "memberRemoved": "{{target}} bị {{actor}} xóa khỏi nhóm",
+        "groupAdminTransferred": "{{actor}} đã rời nhóm. {{newAdmin}} hiện là quản trị viên mới"
     },
     "addFriend": {
         "title": "Thêm bạn",

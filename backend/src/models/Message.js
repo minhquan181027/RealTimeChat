@@ -18,16 +18,32 @@ const messageSchema = new mongoose.Schema({
     imgURL: {
         type: String,
     },
+    gifProvider: {
+        type: String,
+        enum: ["giphy"],
+    },
+    gifId: {
+        type: String,
+        trim: true,
+        maxlength: 128,
+    },
 
     type: {
         type: String,
 
-        enum: ["text", "image", "video", "file", "system"],
+        enum: ["text", "image", "gif", "video", "file", "system"],
         default: "text"
     },
     meta: { type: mongoose.Schema.Types.Mixed },
     translations: { type: Map, of: String },
     sourceLang: { type: String },
+    reactions: {
+        type: Map,
+        of: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+        default: {},
+    },
+    recalledAt: { type: Date, default: null },
+    recalledBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 },
     {
         timestamps: true

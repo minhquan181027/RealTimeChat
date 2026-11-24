@@ -124,6 +124,7 @@ const ChatAppPage = () => {
             id: activeConversation._id, name, avatar, isOnline, lastActiveAt,
             seenBy: (activeConversation.seenBy || []).map((s) => s?._id?.toString() || s?.toString()),
             isGroup: activeConversation.type === "group",
+            group: activeConversation.group,
             participants: activeConversation.participants,
             myStatus: activeConversation.myStatus || "accepted",
             otherUserId,
@@ -164,6 +165,8 @@ const ChatAppPage = () => {
                         ? m.translations?.[currentUser?.language || "vi"] || null
                         : null,
                 imgURL: m.imgURL || null,
+                gifProvider: m.gifProvider || null,
+                gifId: m.gifId || null,
                 sender: m.senderId?.displayName || t("chatWindow.someone"),
                 meta: m.meta,
                 senderId: m.senderId?._id?.toString(),
@@ -171,6 +174,8 @@ const ChatAppPage = () => {
                 senderAvatar:
                     m.senderId?.avatarUrl ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(m.senderId?.displayName || "U")}&background=random`,
+                reactions: m.reactions || {},
+                recalledAt: m.recalledAt || null,
                 time: currentDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
                 dividerText,
                 pending: !!m._pending,
@@ -276,12 +281,22 @@ const ChatAppPage = () => {
         if (ok) handleBack();
     }, [activeId, handleBack]);
 
-    const handleLeaveGroup = useCallback(async () => {
+    const handleLeaveGroup = useCallback(async (newAdminId) => {
         if (!activeId) return false;
-        const ok = await useChatStore.getState().leaveGroup(activeId);
+        const ok = await useChatStore.getState().leaveGroup(activeId, newAdminId);
         if (ok) handleBack();
         return ok;
     }, [activeId, handleBack]);
+
+    const handleRemoveGroupMember = useCallback(async (memberId) => {
+        if (!activeId) return false;
+        return useChatStore.getState().removeGroupMember(activeId, memberId);
+    }, [activeId]);
+
+    const handleSetGroupDeputyAdmin = useCallback(async (memberId) => {
+        if (!activeId) return false;
+        return useChatStore.getState().setGroupDeputyAdmin(activeId, memberId);
+    }, [activeId]);
 
     const handleSendFriend = useCallback(() => {
         if (activeChat?.otherUserId) {
@@ -328,6 +343,36 @@ const ChatAppPage = () => {
         }
     }, [activeConversation, draftUser, currentUser]);
 
+    const handleSendGif = useCallback(async (gif) => {
+        if (!currentUser || gif?.provider !== "giphy" || !gif.id) return;
+
+        if (activeConversation) {
+            if (activeConversation.myStatus === "pending") setView("main");
+            useChatStore.getState().sendMessage({
+                conversationId: activeConversation._id,
+                type: activeConversation.type,
+                content: "",
+                gifProvider: gif.provider,
+                gifId: gif.id,
+                senderUser: currentUser,
+            });
+            return;
+        }
+
+        if (draftUser) {
+            const convId = await useChatStore.getState().startDirectChat({
+                recipientId: draftUser._id,
+                content: "",
+                gifProvider: gif.provider,
+                gifId: gif.id,
+            });
+            if (convId) {
+                setDraftUser(null);
+                setActiveId(convId);
+            }
+        }
+    }, [activeConversation, currentUser, draftUser]);
+
     const handleRetry = useCallback((tempId) => {
         if (!activeConversation || !currentUser) return;
         useChatStore.getState().retryMessage({
@@ -371,7 +416,7 @@ const ChatAppPage = () => {
                 onCall={handleCallUser}
             />
 
-            <AppSidebar view={view} onChangeView={handleChangeView} />
+            <AppSidebar view={view} onChangeView={handleChangeView} mobileHidden={hasOpenChat} />
 
             <SidebarInset className="flex min-w-0 w-full flex-1 flex-row overflow-hidden bg-background">
                 {view === "contacts" ? (
@@ -398,11 +443,14 @@ const ChatAppPage = () => {
                             onBack={handleBack}
                             onTyping={handleTyping}
                             onSend={handleSend}
+                            onSendGif={handleSendGif}
                             onRetry={handleRetry}
                             onUpload={handleUpload}
                             onAccept={handleAccept}
                             onDecline={handleDecline}
                             onLeaveGroup={handleLeaveGroup}
+                            onRemoveMember={handleRemoveGroupMember}
+                            onSetDeputyAdmin={handleSetGroupDeputyAdmin}
                             onAvatarClick={handleAvatarClick}
                             onMemberClick={handleMemberClick}
                             friendStatus={friendInfo.status}

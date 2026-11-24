@@ -23,15 +23,14 @@ export const chatService = {
         return res.data; // { conversation }
     },
 
-    sendFirstMessage: async ({ recipientId, content }) => {
-        const res = await api.post("/message/direct", { recipientId, content });
+    sendFirstMessage: async ({ recipientId, content, gifProvider, gifId }) => {
+        const res = await api.post("/message/direct", { recipientId, content, gifProvider, gifId });
         return res.data.message;
     },
 
-    sendMessage: async ({ conversationId, type, content, imgURL }) => {
-        console.log("🚀 PAYLOAD GỬI ĐI:", { conversationId, type, content, imgURL });
+    sendMessage: async ({ conversationId, type, content, imgURL, gifProvider, gifId }) => {
         const url = type === "group" ? "/message/group" : "/message/direct";
-        const res = await api.post(url, { conversationId, content, imgURL });
+        const res = await api.post(url, { conversationId, content, imgURL, gifProvider, gifId });
         return res.data.message; // backend trả { message }
     },
 
@@ -47,6 +46,16 @@ export const chatService = {
 
     addMembers: async (conversationId, memberIds) => {
         const res = await api.post(`/conversation/${conversationId}/members`, { memberIds });
+        return res.data;
+    },
+
+    removeGroupMember: async (conversationId, memberId) => {
+        const res = await api.delete(`/conversation/${conversationId}/members/${memberId}`);
+        return res.data;
+    },
+
+    setGroupDeputyAdmin: async (conversationId, memberId) => {
+        const res = await api.put(`/conversation/${conversationId}/deputy-admin`, { memberId });
         return res.data;
     },
 
@@ -70,7 +79,22 @@ export const chatService = {
         return res.data;
     },
 
-    leaveGroup: async (conversationId) => {
-        await api.post(`/conversation/${conversationId}/leave`);
+    leaveGroup: async (conversationId, newAdminId) => {
+        await api.post(`/conversation/${conversationId}/leave`, { newAdminId });
+    },
+
+    recallMessage: async (messageId) => {
+        const res = await api.delete(`/message/${messageId}`);
+        return res.data.message;
+    },
+
+    reactToMessage: async (messageId, emoji) => {
+        const res = await api.post(`/message/${messageId}/reaction`, { emoji });
+        return res.data.reactions;
+    },
+
+    translateMessage: async (messageId) => {
+        const res = await api.post(`/message/${messageId}/translate`);
+        return res.data;
     },
 }

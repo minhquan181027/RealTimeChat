@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, LogOut, UserPlus, X } from "lucide-react";
+import { ChevronDown, Ellipsis, LogOut, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,14 @@ import StatusBadge from "./StatusBadge";
 import AddMembersDialog from "./AddMembersDialog";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useSocketStore } from "@/stores/useSocketStore";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 const MEMBER_PREVIEW = 5;
 const PHOTO_PREVIEW = 9;
@@ -31,18 +39,41 @@ const Section = ({ title, children }) => {
     );
 };
 
-const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, onLeave }) => {
+const GroupInfoPanel = ({
+    chat,
+    messages,
+    onClose,
+    onMemberClick,
+    onImageClick,
+    onLeave,
+    onRemoveMember,
+    onSetDeputyAdmin,
+}) => {
     const { t } = useTranslation();
     const currentUser = useAuthStore((s) => s.user);
     const onlineUsers = useSocketStore((s) => s.onlineUsers);
     const [addOpen, setAddOpen] = useState(false);
     const [showAllMembers, setShowAllMembers] = useState(false);
     const [showAllPhotos, setShowAllPhotos] = useState(false);
+    const [memberToRemove, setMemberToRemove] = useState(null);
+    const [removingMember, setRemovingMember] = useState(false);
+    const [selectedNewAdminId, setSelectedNewAdminId] = useState("");
+    const [memberMenuId, setMemberMenuId] = useState(null);
+    const [updatingDeputy, setUpdatingDeputy] = useState(false);
 
     const members = (chat.participants || []).filter((p) => p.status !== "declined");
     const shownMembers = showAllMembers ? members : members.slice(0, MEMBER_PREVIEW);
     const existingIds = (chat.participants || []).map((p) => p._id?.toString());
     const canAdd = chat.id && chat.myStatus !== "pending";
+    const groupAdminId = chat.group?.createdBy?._id || chat.group?.createdBy;
+    const deputyAdminId = chat.group?.deputyAdmin?._id || chat.group?.deputyAdmin;
+    const isCurrentUserAdmin = groupAdminId?.toString() === currentUser?._id?.toString();
+    const deputySuccessor = members.find(
+        (p) => p._id?.toString() === deputyAdminId?.toString() && (p.status || "accepted") === "accepted"
+    );
+    const adminCandidates = members.filter(
+        (p) => p._id?.toString() !== currentUser?._id?.toString() && (p.status || "accepted") === "accepted"
+    );
 
     // Ảnh mới nhất trước, bỏ ảnh đang tải lên
     const photos = [...messages].reverse().filter((m) => m.imgURL && !m.pending);
@@ -53,8 +84,23 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
 
     const handleLeave = async () => {
         setLeaving(true);
-        const ok = await onLeave?.();
+        const ok = await onLeave?.(selectedNewAdminId || undefined);
         if (!ok) setLeaving(false); // thành công thì panel tự biến mất cùng cuộc trò chuyện
+    };
+
+    const handleRemoveMember = async () => {
+        if (!memberToRemove?._id) return;
+        setRemovingMember(true);
+        const ok = await onRemoveMember?.(memberToRemove._id.toString());
+        setRemovingMember(false);
+        if (ok) setMemberToRemove(null);
+    };
+
+    const handleSetDeputyAdmin = async (memberId) => {
+        setUpdatingDeputy(true);
+        const ok = await onSetDeputyAdmin?.(memberId);
+        setUpdatingDeputy(false);
+        if (ok) setMemberMenuId(null);
     };
 
     return (
@@ -90,31 +136,89 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
                         {shownMembers.map((p) => {
                             const id = p._id?.toString();
                             const isMe = id === currentUser?._id?.toString();
+                            const isGroupAdmin = id === groupAdminId?.toString();
+                            const isDeputyAdmin = id === deputyAdminId?.toString();
                             return (
-                                <button
+                                <div
                                     key={id}
-                                    onClick={() => !isMe && onMemberClick?.(p)}
-                                    className={cn(
-                                        "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left",
-                                        isMe ? "cursor-default" : "hover:bg-muted/60"
-                                    )}
+                                    className="flex w-full items-center gap-1 rounded-lg px-2 py-2 hover:bg-muted/60"
                                 >
-                                    <div className="relative shrink-0">
-                                        <img src={avatarOf(p)} alt="" className="size-10 rounded-full object-cover" />
-                                        {onlineUsers.includes(id) && (
-                                            <StatusBadge status="online" className="absolute bottom-0 right-0 size-3" />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium">
-                                            {p.displayName}
-                                            {isMe && ` (${t("groupInfo.you")})`}
-                                        </p>
-                                        {p.status === "pending" && (
-                                            <p className="text-xs text-muted-foreground">{t("groupInfo.pendingMember")}</p>
-                                        )}
-                                    </div>
-                                </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => !isMe && onMemberClick?.(p)}
+                                        className={cn("flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left", isMe && "cursor-default")}
+                                    >
+                                        <div className="relative shrink-0">
+                                            <img src={avatarOf(p)} alt="" className="size-10 rounded-full object-cover" />
+                                            {onlineUsers.includes(id) && (
+                                                <StatusBadge status="online" className="absolute bottom-0 right-0 size-3" />
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="flex min-w-0 items-center gap-1 truncate text-sm font-medium">
+                                                <span className="truncate">
+                                                    {p.displayName}
+                                                    {isMe && ` (${t("groupInfo.you")})`}
+                                                </span>
+                                                {isGroupAdmin && (
+                                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                                        <ShieldCheck className="size-3" />
+                                                        {t("groupInfo.admin")}
+                                                    </span>
+                                                )}
+                                                {isDeputyAdmin && (
+                                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                        <ShieldCheck className="size-3" />
+                                                        {t("groupInfo.deputyAdmin")}
+                                                    </span>
+                                                )}
+                                            </p>
+                                            {p.status === "pending" && (
+                                                <p className="text-xs text-muted-foreground">{t("groupInfo.pendingMember")}</p>
+                                            )}
+                                        </div>
+                                    </button>
+                                    {isCurrentUserAdmin && !isMe && (
+                                        <div className="relative shrink-0">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                title={t("groupInfo.memberActions")}
+                                                aria-label={t("groupInfo.memberActions")}
+                                                disabled={removingMember || updatingDeputy}
+                                                onClick={() => setMemberMenuId((openId) => openId === id ? null : id)}
+                                            >
+                                                <Ellipsis className="size-4" />
+                                            </Button>
+                                            {memberMenuId === id && (
+                                                <div className="absolute right-0 top-full z-50 mt-1 min-w-43 rounded-lg border bg-background p-1 shadow-xl">
+                                                    <button
+                                                        type="button"
+                                                        disabled={updatingDeputy || (!isDeputyAdmin && (p.status || "accepted") !== "accepted")}
+                                                        onClick={() => handleSetDeputyAdmin(isDeputyAdmin ? null : id)}
+                                                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+                                                    >
+
+                                                        {isDeputyAdmin ? t("groupInfo.removeDeputy") : t("groupInfo.makeDeputy")}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={removingMember}
+                                                        onClick={() => {
+                                                            setMemberMenuId(null);
+                                                            setMemberToRemove(p);
+                                                        }}
+                                                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-destructive hover:bg-muted disabled:opacity-50"
+                                                    >
+
+                                                        {t("groupInfo.kick")}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
@@ -172,6 +276,31 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
                         {confirmLeave ? (
                             <div className="space-y-3">
                                 <p className="text-sm">{t("groupInfo.confirmLeave", { name: chat.name })}</p>
+                                {isCurrentUserAdmin && deputySuccessor && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t("groupInfo.deputyWillPromote", { name: deputySuccessor.displayName })}
+                                    </p>
+                                )}
+                                {isCurrentUserAdmin && !deputySuccessor && adminCandidates.length > 0 && (
+                                    <label className="block space-y-1.5 text-sm">
+                                        <span>{t("groupInfo.newAdmin")}</span>
+                                        <select
+                                            value={selectedNewAdminId}
+                                            onChange={(event) => setSelectedNewAdminId(event.target.value)}
+                                            className="w-full rounded-md border bg-background px-3 py-2"
+                                        >
+                                            <option value="">{t("groupInfo.selectAdmin")}</option>
+                                            {adminCandidates.map((member) => (
+                                                <option key={member._id} value={member._id}>
+                                                    {member.displayName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                )}
+                                {isCurrentUserAdmin && !deputySuccessor && adminCandidates.length === 0 && (
+                                    <p className="text-sm text-destructive">{t("groupInfo.noAdminCandidate")}</p>
+                                )}
                                 <div className="flex gap-2">
                                     <Button
                                         variant="secondary"
@@ -184,7 +313,7 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
                                     <Button
                                         variant="destructive"
                                         className="flex-1"
-                                        disabled={leaving}
+                                        disabled={leaving || (isCurrentUserAdmin && !deputySuccessor && adminCandidates.length > 0 && !selectedNewAdminId)}
                                         onClick={handleLeave}
                                     >
                                         {leaving ? t("groupInfo.leaving") : t("groupInfo.leave")}
@@ -193,7 +322,10 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
                             </div>
                         ) : (
                             <button
-                                onClick={() => setConfirmLeave(true)}
+                                onClick={() => {
+                                    setSelectedNewAdminId("");
+                                    setConfirmLeave(true);
+                                }}
                                 className="flex w-full items-center gap-3 rounded-md py-1 text-sm font-medium text-destructive hover:bg-muted/40"
                             >
                                 <LogOut className="size-4" />
@@ -210,6 +342,40 @@ const GroupInfoPanel = ({ chat, messages, onClose, onMemberClick, onImageClick, 
                 conversationId={chat.id}
                 existingIds={existingIds}
             />
+
+            <Dialog
+                open={!!memberToRemove}
+                onOpenChange={(open) => {
+                    if (!open && !removingMember) setMemberToRemove(null);
+                }}
+            >
+                <DialogContent showCloseButton={!removingMember}>
+                    <DialogHeader>
+                        <DialogTitle>{t("groupInfo.removeMember")}</DialogTitle>
+                        <DialogDescription>
+                            {t("groupInfo.confirmRemove", { name: memberToRemove?.displayName || "" })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={removingMember}
+                            onClick={() => setMemberToRemove(null)}
+                        >
+                            {t("common.cancel")}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={removingMember}
+                            onClick={handleRemoveMember}
+                        >
+                            {removingMember ? t("groupInfo.removing") : t("groupInfo.remove")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </aside>
     );
 };

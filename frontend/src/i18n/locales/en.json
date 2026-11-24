@@ -29,6 +29,13 @@
         "title": "Group info",
         "close": "Close",
         "members": "Group members",
+        "admin": "Admin",
+        "removeMember": "Remove member",
+        "confirmRemove": "Are you sure you want to remove {{name}} from the group?",
+        "remove": "Remove",
+        "removing": "Removing...",
+        "memberRemoved": "Member removed from the group",
+        "removeFailed": "Could not remove the member",
         "photos": "Photos/Videos",
         "noPhotos": "No photos or videos shared in this conversation yet",
         "files": "Files",
@@ -40,7 +47,19 @@
         "leave": "Leave group",
         "confirmLeave": "Are you sure you want to leave “{{name}}”?",
         "leaving": "Leaving...",
-        "leaveFailed": "Could not leave the group"
+        "leaveFailed": "Could not leave the group",
+        "newAdmin": "Choose a new admin",
+        "selectAdmin": "Select a member",
+        "noAdminCandidate": "No accepted member can take over. Leaving will delete the group.",
+        "deputyAdmin": "Deputy admin",
+        "memberActions": "Member actions",
+        "makeDeputy": "Make deputy admin",
+        "removeDeputy": "Remove deputy admin role",
+        "kick": "Remove from group",
+        "deputyAssigned": "Deputy admin assigned",
+        "deputyRemoved": "Deputy admin role removed",
+        "deputyUpdateFailed": "Could not update deputy admin",
+        "deputyWillPromote": "{{name}} will become the new admin when you leave"
     },
     "typing": {
         "one": "Typing...",
@@ -70,7 +89,13 @@
         "send": "Send",
         "like": "Like",
         "onlyImages": "Only images are supported.",
-        "maxSize": "Images must be 5MB or less."
+        "maxSize": "Images must be 5MB or less.",
+        "gifPicker": "Choose a GIF",
+        "searchGifs": "Search GIFs...",
+        "sendGif": "Send GIF",
+        "noGifs": "No GIFs found",
+        "gifApiKeyMissing": "Add a GIPHY API key to frontend/.env.development.",
+        "gifSearchFailed": "Could not load GIFs. Please try again."
     },
     "date": {
         "weekdays": [
@@ -108,6 +133,7 @@
         "unnamedGroup": "Unnamed group",
         "hiddenUser": "Hidden user",
         "image": "[Image]",
+        "gif": "[GIF]",
         "video": "[Video]",
         "message": "[Message]",
         "you": "You",
@@ -123,13 +149,30 @@
         "someone": "Someone",
         "retry": "Resend",
         "imageAlt": "Image",
+        "gifLoadFailed": "Could not load GIFs from GIPHY.",
         "viewImage": "View image",
         "friendNone": "Send a friend request to this person",
         "friendSent": "Friend request sent, waiting for a reply",
         "friendReceived": "{{name}} sent you a friend request",
         "sendFriend": "Add friend",
         "pendingGroup": "You were added to this group. Accept to join or delete it.",
-        "pendingDirect": "{{name}} is not your friend yet. Reply or accept to move this to your main chats."
+        "pendingDirect": "{{name}} is not your friend yet. Reply or accept to move this to your main chats.",
+        "react": "React",
+        "more": "More",
+        "copyMessage": "Copy message",
+        "copyImage": "Copy image",
+        "saveImage": "Save image",
+        "translate": "Translate",
+        "viewOriginal": "View original",
+        "recall": "Unsend",
+        "recalled": "Message unsent",
+        "copied": "Copied",
+        "copyFailed": "Could not copy message",
+        "copyImageFailed": "Could not copy image",
+        "downloadFailed": "Could not download image",
+        "recallFailed": "Could not unsend message",
+        "reactionFailed": "Could not add reaction",
+        "translateFailed": "Could not translate message"
     },
     "header": {
         "members": "{{n}} members",
@@ -137,7 +180,9 @@
     },
     "system": {
         "membersAdded": "{{actor}} added {{targets}} to the group",
-        "memberLeft": "{{actor}} left the group"
+        "memberLeft": "{{actor}} left the group",
+        "memberRemoved": "{{target}} was removed from the group by {{actor}}",
+        "groupAdminTransferred": "{{actor}} left the group. {{newAdmin}} is now the admin"
     },
     "addFriend": {
         "title": "Add friend",

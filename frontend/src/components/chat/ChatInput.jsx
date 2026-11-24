@@ -4,9 +4,10 @@ import { Paperclip, Smile, Send, ThumbsUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import EmojiPickerButton from "./EmojiPickerButton";
+import GifPickerButton from "./GifPickerButton";
 import { useTranslation } from "react-i18next";
 
-const ChatInput = ({ onSend, onUpload, onTyping, disabled = false }) => {
+const ChatInput = ({ onSend, onSendGif, onUpload, onTyping, disabled = false }) => {
     const [text, setText] = useState("");
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
@@ -127,6 +128,7 @@ const ChatInput = ({ onSend, onUpload, onTyping, disabled = false }) => {
             />
 
             <EmojiPickerButton onEmojiSelect={handleEmojiSelect} disabled={disabled} />
+            <GifPickerButton onGifSelect={onSendGif} disabled={disabled} />
 
             {isTyping ? (
                 <Button

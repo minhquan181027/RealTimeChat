@@ -99,6 +99,63 @@ export const useChatStore = create(
                     };
                 });
             },
+            applyReaction: ({ conversationId, messageId, reactions }) => {
+                set((s) => ({
+                    messages: {
+                        ...s.messages,
+                        [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                            m._id?.toString() === messageId ? { ...m, reactions } : m
+                        ),
+                    },
+                }));
+            },
+            applyRecall: ({ conversationId, messageId, recalledAt }) => {
+                set((s) => {
+                    const conversations = s.conversations.map((c) =>
+                        c._id?.toString() === conversationId && c.lastMessage?._id?.toString() === messageId
+                            ? {
+                                ...c,
+                                lastMessage: { ...c.lastMessage, content: i18n.t("chatWindow.recalled"), recalledAt },
+                            }
+                            : c
+                    );
+                    return {
+                        conversations,
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                                m._id?.toString() === messageId ? { ...m, recalledAt } : m
+                            ),
+                        },
+                    };
+                });
+            },
+            recallMessage: async (messageId) => {
+                try {
+                    await chatService.recallMessage(messageId);
+                    return true;
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("chatWindow.recallFailed"));
+                    return false;
+                }
+            },
+            reactToMessage: async (messageId, emoji) => {
+                try {
+                    await chatService.reactToMessage(messageId, emoji);
+                    return true;
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("chatWindow.reactionFailed"));
+                    return false;
+                }
+            },
+            translateMessage: async (messageId) => {
+                try {
+                    return await chatService.translateMessage(messageId);
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("chatWindow.translateFailed"));
+                    return null;
+                }
+            },
             // ==================== HELPERS (private) ====================
             _replaceMessage: (conversationId, tempId, realMsg) => {
                 set((s) => {
@@ -181,14 +238,19 @@ export const useChatStore = create(
             },
 
             // ==================== START DIRECT CHAT (chat nháp -> tin đầu tiên) ====================
-            startDirectChat: async ({ recipientId, content }) => {
+            startDirectChat: async ({ recipientId, content, gifProvider, gifId }) => {
                 const trimmed = content?.trim() ?? "";
-                if (!recipientId || !trimmed) return null;
+                if (!recipientId || (!trimmed && !gifId)) return null;
                 if (get().sending["draft"]) return null;
 
                 set((s) => ({ sending: { ...s.sending, draft: true } }));
                 try {
-                    const msg = await chatService.sendFirstMessage({ recipientId, content: trimmed });
+                    const msg = await chatService.sendFirstMessage({
+                        recipientId,
+                        content: trimmed,
+                        gifProvider,
+                        gifId,
+                    });
                     await get().fetchConversations();
                     return msg.conversationId?.toString() ?? null;
                 } catch (err) {
@@ -220,10 +282,10 @@ export const useChatStore = create(
             },
 
             // ==================== SEND MESSAGE ====================
-            sendMessage: async ({ conversationId, type, content, imgURL, senderUser }) => {
+            sendMessage: async ({ conversationId, type, content, imgURL, gifProvider, gifId, senderUser }) => {
                 if (!conversationId || !senderUser) return;
                 const trimmed = content?.trim() ?? "";
-                if (!trimmed && !imgURL) return;
+                if (!trimmed && !imgURL && !gifId) return;
                 if (get().sending[conversationId]) return;
 
                 const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -233,7 +295,9 @@ export const useChatStore = create(
                     senderId: senderUser,
                     content: trimmed,
                     imgURL: imgURL ?? null,
-                    type: imgURL ? "image" : "text",
+                    gifProvider: gifProvider ?? null,
+                    gifId: gifId ?? null,
+                    type: gifId ? "gif" : imgURL ? "image" : "text",
                     createdAt: new Date().toISOString(),
                     _pending: true,
                     _failed: false,
@@ -257,6 +321,8 @@ export const useChatStore = create(
                         type,
                         content: trimmed,
                         imgURL,
+                        gifProvider,
+                        gifId,
                     });
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
 
@@ -418,13 +484,45 @@ export const useChatStore = create(
                 });
             },
 
-            leaveGroup: async (conversationId) => {
+            leaveGroup: async (conversationId, newAdminId) => {
                 try {
-                    await chatService.leaveGroup(conversationId);
+                    await chatService.leaveGroup(conversationId, newAdminId);
                     get().removeConversation(conversationId);
                     return true;
                 } catch (error) {
                     toast.error(error.response?.data?.message || i18n.t("groupInfo.leaveFailed"));
+                    return false;
+                }
+            },
+
+            removeGroupMember: async (conversationId, memberId) => {
+                try {
+                    const { conversation } = await chatService.removeGroupMember(conversationId, memberId);
+                    set((state) => ({
+                        conversations: state.conversations.map((item) =>
+                            item._id?.toString() === conversationId?.toString() ? conversation : item
+                        ),
+                    }));
+                    toast.success(i18n.t("groupInfo.memberRemoved"));
+                    return true;
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("groupInfo.removeFailed"));
+                    return false;
+                }
+            },
+
+            setGroupDeputyAdmin: async (conversationId, memberId) => {
+                try {
+                    const { conversation } = await chatService.setGroupDeputyAdmin(conversationId, memberId);
+                    set((state) => ({
+                        conversations: state.conversations.map((item) =>
+                            item._id?.toString() === conversationId?.toString() ? conversation : item
+                        ),
+                    }));
+                    toast.success(i18n.t(memberId ? "groupInfo.deputyAssigned" : "groupInfo.deputyRemoved"));
+                    return true;
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("groupInfo.deputyUpdateFailed"));
                     return false;
                 }
             },
@@ -454,6 +552,8 @@ export const useChatStore = create(
                         type,
                         content: temp.content,
                         imgURL: temp.imgURL,
+                        gifProvider: temp.gifProvider,
+                        gifId: temp.gifId,
                     });
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
                     get()._replaceMessage(conversationId, tempId, merged);

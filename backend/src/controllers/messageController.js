@@ -5,11 +5,27 @@ import cloudinary from 'cloudinary';
 import multer from 'multer';
 import { getIO } from "../socket/index.js";
 import { translateForRecipients } from "../services/translateService.js";
+import { translateText } from "../services/translateService.js";
 
 cloudinary.v2.config();
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+const getGifPayload = (gifProvider, gifId, imgURL) => {
+    if (gifProvider === undefined && gifId === undefined) return null;
+
+    const normalizedId = typeof gifId === "string" ? gifId.trim() : "";
+    if (
+        gifProvider !== "giphy" ||
+        !/^[\w-]{1,128}$/.test(normalizedId) ||
+        imgURL
+    ) {
+        return false;
+    }
+
+    return { gifProvider, gifId: normalizedId };
+};
 
 const updateConversationAfterNewMessage = (conversation, message, senderId) => {
     conversation.set({
@@ -47,11 +63,15 @@ const emitNewMessage = (conversation, message) => {
 
 export const sendDirectMessage = async (req, res) => {
     try {
-        const { recipientId, content, imgURL } = req.body;
+        const { recipientId, content, imgURL, gifProvider, gifId } = req.body;
         let { conversationId } = req.body;
         const senderId = req.user._id;
+        const gifPayload = getGifPayload(gifProvider, gifId, imgURL);
 
-        if (!content?.trim() && !imgURL) {
+        if (gifPayload === false) {
+            return res.status(400).json({ message: "GIF không hợp lệ" });
+        }
+        if (!content?.trim() && !imgURL && !gifPayload) {
             return res.status(400).json({ message: "Thiếu nội dung tin nhắn" });
         }
 
@@ -96,14 +116,14 @@ export const sendDirectMessage = async (req, res) => {
         }
 
 
-        let messageType = "text";
-        if (imgURL) messageType = "image";
+        const messageType = gifPayload ? "gif" : imgURL ? "image" : "text";
 
         const message = await Message.create({
             conversationId: conversation._id,
             senderId,
             content,
             imgURL,
+            ...gifPayload,
             type: messageType,
         });
 
@@ -125,13 +145,17 @@ export const sendDirectMessage = async (req, res) => {
 
 export const sendGroupMessage = async (req, res) => {
     try {
-        const { conversationId, content, imgURL } = req.body;
+        const { conversationId, content, imgURL, gifProvider, gifId } = req.body;
         const senderId = req.user._id;
+        const gifPayload = getGifPayload(gifProvider, gifId, imgURL);
 
         if (!conversationId) {
             return res.status(400).json({ message: "Thiếu conversationId" });
         }
-        if (!content?.trim() && !imgURL) {
+        if (gifPayload === false) {
+            return res.status(400).json({ message: "GIF không hợp lệ" });
+        }
+        if (!content?.trim() && !imgURL && !gifPayload) {
             return res.status(400).json({ message: "Thiếu nội dung tin nhắn" });
         }
 
@@ -148,14 +172,14 @@ export const sendGroupMessage = async (req, res) => {
         }
 
         // 🆕 Tự động xác định type
-        let messageType = "text";
-        if (imgURL) messageType = "image";
+        const messageType = gifPayload ? "gif" : imgURL ? "image" : "text";
 
         const message = await Message.create({
             conversationId,
             senderId,
             content,
             imgURL,
+            ...gifPayload,
             type: messageType,
         });
 
@@ -205,3 +229,130 @@ export const uploadImage = [
         }
     },
 ];
+
+const emitMessageUpdate = (conversation, event, payload) => {
+    const io = getIO();
+    conversation.participants.forEach((p) => {
+        if (p.status === "declined") return;
+        io.to(p.userId.toString()).emit(event, payload);
+    });
+};
+
+export const recallMessage = async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.messageId);
+        if (!message) return res.status(404).json({ message: "Không tìm thấy tin nhắn" });
+        if (message.senderId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Bạn không thể thu hồi tin nhắn này" });
+        }
+        if (message.recalledAt) return res.status(200).json({ message });
+
+        message.recalledAt = new Date();
+        message.recalledBy = req.user._id;
+        await message.save();
+
+        const conversation = await Conversation.findById(message.conversationId);
+        if (conversation) {
+            if (conversation.lastMessage?._id?.toString() === message._id.toString()) {
+                conversation.lastMessage.content = "";
+                await conversation.save();
+            }
+            emitMessageUpdate(conversation, "message_recalled", {
+                conversationId: message.conversationId.toString(),
+                messageId: message._id.toString(),
+                recalledAt: message.recalledAt,
+            });
+        }
+        return res.status(200).json({ message });
+    } catch (error) {
+        console.error("Lỗi thu hồi tin nhắn:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const reactToMessage = async (req, res) => {
+    try {
+        const { emoji } = req.body;
+        if (!emoji || typeof emoji !== "string" || emoji.length > 16) {
+            return res.status(400).json({ message: "Biểu tượng cảm xúc không hợp lệ" });
+        }
+
+        const message = await Message.findById(req.params.messageId);
+        if (!message) return res.status(404).json({ message: "Không tìm thấy tin nhắn" });
+
+        const conversation = await Conversation.findById(message.conversationId);
+        if (!conversation) return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
+        const isMember = conversation.participants.some(
+            (p) => p.userId.toString() === req.user._id.toString() && p.status !== "declined"
+        );
+        if (!isMember) return res.status(403).json({ message: "Bạn không thuộc cuộc trò chuyện này" });
+
+        const reactions = message.reactions || new Map();
+        const previousEmojiIds = reactions.get(emoji) || [];
+        const wasSelected = previousEmojiIds.some((id) => id.toString() === req.user._id.toString());
+        for (const [key, ids] of reactions.entries()) {
+            const filtered = ids.filter((id) => id.toString() !== req.user._id.toString());
+            if (filtered.length) reactions.set(key, filtered);
+            else reactions.delete(key);
+        }
+
+        if (!wasSelected) {
+            const current = reactions.get(emoji) || [];
+            reactions.set(emoji, [...current, req.user._id]);
+        }
+        message.reactions = reactions;
+        await message.save();
+
+        const serialized = Object.fromEntries(
+            [...reactions.entries()].map(([key, ids]) => [key, ids.map((id) => id.toString())])
+        );
+        emitMessageUpdate(conversation, "message_reaction", {
+            conversationId: message.conversationId.toString(),
+            messageId: message._id.toString(),
+            reactions: serialized,
+        });
+        return res.status(200).json({ reactions: serialized });
+    } catch (error) {
+        console.error("Lỗi thả biểu tượng cảm xúc:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const translateMessage = async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.messageId);
+        if (!message || message.type !== "text" || !message.content?.trim()) {
+            return res.status(404).json({ message: "Tin nhắn không thể dịch" });
+        }
+
+        const conversation = await Conversation.findById(message.conversationId);
+        if (!conversation) return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
+        const isMember = conversation.participants.some(
+            (p) => p.userId.toString() === req.user._id.toString() && p.status !== "declined"
+        );
+        if (!isMember) return res.status(403).json({ message: "Bạn không thuộc cuộc trò chuyện này" });
+
+        const lang = req.user.language || "vi";
+        let existing = message.translations?.get(lang);
+        if (!existing) {
+            const result = await translateText(message.content, [lang]);
+            existing = result.translations?.[lang];
+            if (!existing) return res.status(502).json({ message: "Không thể dịch tin nhắn" });
+            message.translations = message.translations || new Map();
+            message.translations.set(lang, existing);
+            if (result.sourceLang) message.sourceLang = result.sourceLang;
+            await message.save();
+        }
+
+        return res.status(200).json({
+            conversationId: message.conversationId.toString(),
+            messageId: message._id.toString(),
+            lang,
+            text: existing,
+            sourceLang: message.sourceLang,
+        });
+    } catch (error) {
+        console.error("Lỗi dịch tin nhắn:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};

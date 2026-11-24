@@ -10,13 +10,17 @@ import GroupInfoPanel from "./GroupInfoPanel";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
+import { fetchGiphyGifsByIds } from "@/services/giphyService";
+import { toast } from "sonner";
 
 const SCROLL_THRESHOLD = 80;
 
 const ChatWindow = ({
     chat, messages, onBack, onTyping, onSend, onRetry, onUpload, onAccept, onDecline,
+    onSendGif,
     sending, uploading, onLoadMore, hasMore, loading,
-    friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onMemberClick, onLeaveGroup, className,
+    friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onMemberClick, onLeaveGroup, onRemoveMember,
+    onSetDeputyAdmin, className,
 }) => {
     const { t } = useTranslation();
 
@@ -28,12 +32,44 @@ const ChatWindow = ({
 
     const [selectedImage, setSelectedImage] = useState(null);
     const [infoOpen, setInfoOpen] = useState(false);
+    const [gifMedia, setGifMedia] = useState({});
+    const requestedGifIdsRef = useRef(new Set());
 
     const currentUser = useAuthStore((state) => state.user);
 
     const typingMap = useChatStore((s) => s.typing[chat?.id]);
     const typingNames = Object.values(typingMap || {});
     const typingCount = typingNames.length;
+
+    useEffect(() => {
+        const gifIds = [...new Set(
+            messages
+                .filter((message) => message.type === "gif" && message.gifProvider === "giphy" && message.gifId)
+                .map((message) => message.gifId)
+        )];
+        const missingIds = gifIds.filter((id) => !requestedGifIdsRef.current.has(id));
+        if (!missingIds.length) return;
+
+        missingIds.forEach((id) => requestedGifIdsRef.current.add(id));
+        fetchGiphyGifsByIds(missingIds)
+            .then((resolvedGifs) => {
+                setGifMedia((current) => ({
+                    ...current,
+                    ...Object.fromEntries(resolvedGifs.map((gif) => [gif.id, gif])),
+                }));
+            })
+            .catch((error) => {
+                console.error("Could not load GIPHY media:", error);
+                toast.error(t("chatWindow.gifLoadFailed"));
+            });
+    }, [messages, t]);
+
+    const handleGifSelect = useCallback((gif) => {
+        if (!gif?.id || !gif.previewUrl) return;
+        requestedGifIdsRef.current.add(gif.id);
+        setGifMedia((current) => ({ ...current, [gif.id]: gif }));
+        onSendGif?.({ provider: "giphy", id: gif.id });
+    }, [onSendGif]);
 
     // Những người đã xem (không tính bản thân)
     const seenByOthers = (chat?.seenBy || []).filter(
@@ -149,7 +185,7 @@ const ChatWindow = ({
                 <div
                     ref={listRef}
                     style={{ overflowAnchor: "none" }}
-                    className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"
+                    className="min-h-0 flex flex-1 flex-col gap-y-3 overflow-y-auto p-4"
                 >
                     {loading && hasMore && (
                         <div className="flex justify-center py-2 text-xs text-muted-foreground">
@@ -159,6 +195,18 @@ const ChatWindow = ({
 
                     {messages.map((m, index) => {
                         const isLastMessage = index === messages.length - 1;
+                        const previousMessage = messages[index - 1];
+                        const nextMessage = messages[index + 1];
+                        const canGroupWith = (other) =>
+                            other &&
+                            m.type !== "system" &&
+                            other.type !== "system" &&
+                            !m.recalledAt &&
+                            !other.recalledAt &&
+                            m.senderId &&
+                            m.senderId === other.senderId;
+                        const sameSenderPrev = !m.dividerText && canGroupWith(previousMessage);
+                        const sameSenderNext = !nextMessage?.dividerText && canGroupWith(nextMessage);
                         const showSeenAvatar = isLastMessage && m.mine && seenCount > 0;
 
                         return (
@@ -174,10 +222,15 @@ const ChatWindow = ({
                                 <MessageItem
                                     m={m}
                                     chat={chat}
+                                    isLastMessage={isLastMessage}
+                                    sameSenderPrev={sameSenderPrev}
+                                    sameSenderNext={sameSenderNext}
                                     onRetry={onRetry}
                                     setSelectedImage={setSelectedImage}
                                     onImageLoad={handleImageLoad}
                                     onAvatarClick={onAvatarClick}
+                                    gifPreviewUrl={gifMedia[m.gifId]?.previewUrl}
+                                    gifMediaUrl={gifMedia[m.gifId]?.mediaUrl}
                                 />
 
                                 {showSeenAvatar && (
@@ -269,7 +322,7 @@ const ChatWindow = ({
                     </div>
                 )}
 
-                <ChatInput onSend={onSend} onUpload={onUpload} onTyping={onTyping} disabled={inputDisabled} />
+                <ChatInput onSend={onSend} onSendGif={handleGifSelect} onUpload={onUpload} onTyping={onTyping} disabled={inputDisabled} />
             </div>
 
             {/* Panel thông tin nhóm */}
@@ -281,6 +334,8 @@ const ChatWindow = ({
                     onMemberClick={onMemberClick}
                     onImageClick={setSelectedImage}
                     onLeave={onLeaveGroup}
+                    onRemoveMember={onRemoveMember}
+                    onSetDeputyAdmin={onSetDeputyAdmin}
 
                 />
             )}

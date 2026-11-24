@@ -25,6 +25,27 @@
         "autoTranslate": "メッセージを自動的にあなたの言語に翻訳する",
         "autoTranslateHint": "メッセージのテキストはGoogleの翻訳サービスに送信されます"
     },
+    "groupInfo": {
+        "admin": "管理者",
+        "removeMember": "メンバーを削除",
+        "confirmRemove": "{{name}}さんをグループから削除しますか？",
+        "remove": "削除",
+        "removing": "削除中...",
+        "memberRemoved": "メンバーをグループから削除しました",
+        "removeFailed": "メンバーを削除できませんでした",
+        "newAdmin": "新しい管理者を選択",
+        "selectAdmin": "メンバーを選択",
+        "noAdminCandidate": "引き継げる承認済みメンバーがいません。退出するとグループは削除されます。",
+        "deputyAdmin": "副管理者",
+        "memberActions": "メンバーの操作",
+        "makeDeputy": "副管理者にする",
+        "removeDeputy": "副管理者を解除",
+        "kick": "グループから削除",
+        "deputyAssigned": "副管理者を設定しました",
+        "deputyRemoved": "副管理者を解除しました",
+        "deputyUpdateFailed": "副管理者を更新できませんでした",
+        "deputyWillPromote": "退出すると{{name}}さんが新しい管理者になります"
+    },
     "contacts": {
         "title": "連絡先",
         "friendsList": "友達リスト",
@@ -48,7 +69,13 @@
         "send": "送信",
         "like": "いいね",
         "onlyImages": "画像のみサポートされています。",
-        "maxSize": "画像は5MB以下である必要があります。"
+        "maxSize": "画像は5MB以下である必要があります。",
+        "gifPicker": "GIFを選択",
+        "searchGifs": "GIFを検索...",
+        "sendGif": "GIFを送信",
+        "noGifs": "GIFが見つかりません",
+        "gifApiKeyMissing": "frontend/.env.developmentにGIPHY APIキーを設定してください。",
+        "gifSearchFailed": "GIFを読み込めませんでした。もう一度お試しください。"
     },
     "date": {
         "weekdays": [
@@ -86,6 +113,7 @@
         "unnamedGroup": "無名のグループ",
         "hiddenUser": "非表示のユーザー",
         "image": "[画像]",
+        "gif": "[GIF]",
         "video": "[動画]",
         "message": "[メッセージ]",
         "you": "あなた",
@@ -101,20 +129,39 @@
         "someone": "誰か",
         "retry": "再送信",
         "imageAlt": "画像",
+        "gifLoadFailed": "GIPHYからGIFを読み込めませんでした。",
         "viewImage": "画像を表示",
         "friendNone": "この人に友達リクエストを送信する",
         "friendSent": "友達リクエストを送信しました。返信を待っています",
         "friendReceived": "{{name}}さんから友達リクエストが届きました",
         "sendFriend": "友達を追加",
         "pendingGroup": "あなたはこのグループに追加されました。参加を承認するか、削除してください。",
-        "pendingDirect": "{{name}}さんはまだあなたの友達ではありません。返信するか承認してメインチャットに移動してください。"
+        "pendingDirect": "{{name}}さんはまだあなたの友達ではありません。返信するか承認してメインチャットに移動してください。",
+        "react": "リアクション",
+        "more": "その他",
+        "copyMessage": "メッセージをコピー",
+        "copyImage": "画像をコピー",
+        "saveImage": "画像を保存",
+        "translate": "翻訳",
+        "viewOriginal": "原文を表示",
+        "recall": "取り消す",
+        "recalled": "メッセージを取り消しました",
+        "copied": "コピーしました",
+        "copyFailed": "メッセージをコピーできませんでした",
+        "copyImageFailed": "画像をコピーできませんでした",
+        "downloadFailed": "画像を保存できませんでした",
+        "recallFailed": "メッセージを取り消せませんでした",
+        "reactionFailed": "リアクションを追加できませんでした",
+        "translateFailed": "メッセージを翻訳できませんでした"
     },
     "header": {
         "members": "{{n}}人のメンバー",
         "addMember": "メンバーを追加"
     },
     "system": {
-        "membersAdded": "{{actor}}が{{targets}}をグループに追加しました"
+        "membersAdded": "{{actor}}が{{targets}}をグループに追加しました",
+        "memberRemoved": "{{actor}}が{{target}}をグループから削除しました",
+        "groupAdminTransferred": "{{actor}}がグループを退出しました。{{newAdmin}}さんが新しい管理者になりました"
     },
     "addFriend": {
         "title": "友達を追加",

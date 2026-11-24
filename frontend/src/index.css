@@ -149,7 +149,7 @@
   --secondary-foreground: var(--color-base-content);
 
   --muted: var(--color-base-200);
-  --muted-foreground: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  --muted-foreground: color-mix(in oklab, var(--color-base-content) 80%, transparent);
 
   --accent: var(--color-base-200);
   --accent-foreground: var(--color-base-content);

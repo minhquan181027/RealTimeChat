@@ -25,6 +25,23 @@
         "autoTranslate": "Tự động dịch tin nhắn sang ngôn ngữ của bạn",
         "autoTranslateHint": "Nội dung tin nhắn sẽ được gửi tới dịch vụ dịch của Google"
     },
+    "groupInfo": {
+        "title": "Thông tin nhóm",
+        "close": "Đóng",
+        "members": "Thành viên nhóm",
+        "photos": "Ảnh/Video",
+        "noPhotos": "Chưa có ảnh/video nào được chia sẻ trong hội thoại này",
+        "files": "File",
+        "noFiles": "Chưa có file nào được chia sẻ trong hội thoại này",
+        "showAll": "Xem tất cả",
+        "showLess": "Thu gọn",
+        "pendingMember": "Chờ xác nhận",
+        "you": "Bạn",
+        "leave": "Rời nhóm",
+        "confirmLeave": "Bạn chắc chắn muốn rời nhóm “{{name}}”?",
+        "leaving": "Đang rời...",
+        "leaveFailed": "Không rời được nhóm"
+    },
     "typing": {
         "one": "Đang soạn tin...",
         "named": "{{name}} đang soạn tin...",
@@ -119,7 +136,8 @@
         "addMember": "Thêm thành viên"
     },
     "system": {
-        "membersAdded": "{{targets}} được {{actor}} thêm vào nhóm"
+        "membersAdded": "{{targets}} được {{actor}} thêm vào nhóm",
+        "memberLeft": "{{actor}} đã rời nhóm"
     },
     "addFriend": {
         "title": "Thêm bạn",

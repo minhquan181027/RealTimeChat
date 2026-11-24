@@ -61,6 +61,10 @@ const ChatAppPage = () => {
         if (activeId) fetchMessages(activeId);
     }, [activeId, fetchMessages]);
 
+    useEffect(() => {
+        if (activeId && !conversations.some((c) => c._id === activeId)) setActiveId(null);
+    }, [conversations, activeId]);
+
     const handleLoadMore = useCallback(() => {
         if (!activeId) return;
         const nextCursor = cursors?.[activeId] ?? null;
@@ -220,6 +224,11 @@ const ChatAppPage = () => {
         setProfileUser({ _id: m.senderId, displayName: m.sender, avatarUrl: m.senderAvatar });
     }, []);
 
+    const handleMemberClick = useCallback((p) => {
+        if (!p?._id) return;
+        setProfileUser({ _id: p._id.toString(), displayName: p.displayName, avatarUrl: p.avatarUrl });
+    }, []);
+
     const handleMessageUser = useCallback((user) => {
         setProfileUser(null);
         handlePickUser(user); // mở chat cũ hoặc chat nháp
@@ -265,6 +274,13 @@ const ChatAppPage = () => {
         if (!activeId) return;
         const ok = await useChatStore.getState().declineConversation(activeId);
         if (ok) handleBack();
+    }, [activeId, handleBack]);
+
+    const handleLeaveGroup = useCallback(async () => {
+        if (!activeId) return false;
+        const ok = await useChatStore.getState().leaveGroup(activeId);
+        if (ok) handleBack();
+        return ok;
     }, [activeId, handleBack]);
 
     const handleSendFriend = useCallback(() => {
@@ -386,7 +402,9 @@ const ChatAppPage = () => {
                             onUpload={handleUpload}
                             onAccept={handleAccept}
                             onDecline={handleDecline}
+                            onLeaveGroup={handleLeaveGroup}
                             onAvatarClick={handleAvatarClick}
+                            onMemberClick={handleMemberClick}
                             friendStatus={friendInfo.status}
                             onSendFriend={handleSendFriend}
                             onAcceptFriend={handleAcceptFriend}

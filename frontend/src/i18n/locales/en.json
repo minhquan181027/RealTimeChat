@@ -25,6 +25,23 @@
         "autoTranslate": "Automatically translate messages into your language",
         "autoTranslateHint": "Message text is sent to Google's translation service"
     },
+    "groupInfo": {
+        "title": "Group info",
+        "close": "Close",
+        "members": "Group members",
+        "photos": "Photos/Videos",
+        "noPhotos": "No photos or videos shared in this conversation yet",
+        "files": "Files",
+        "noFiles": "No files shared in this conversation yet",
+        "showAll": "See all",
+        "showLess": "Show less",
+        "pendingMember": "Pending",
+        "you": "You",
+        "leave": "Leave group",
+        "confirmLeave": "Are you sure you want to leave “{{name}}”?",
+        "leaving": "Leaving...",
+        "leaveFailed": "Could not leave the group"
+    },
     "typing": {
         "one": "Typing...",
         "named": "{{name}} is typing...",
@@ -119,7 +136,8 @@
         "addMember": "Add members"
     },
     "system": {
-        "membersAdded": "{{actor}} added {{targets}} to the group"
+        "membersAdded": "{{actor}} added {{targets}} to the group",
+        "memberLeft": "{{actor}} left the group"
     },
     "addFriend": {
         "title": "Add friend",

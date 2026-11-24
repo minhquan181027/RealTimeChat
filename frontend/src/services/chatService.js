@@ -69,4 +69,8 @@ export const chatService = {
         const res = await api.post("/livekit/token", { roomName });
         return res.data;
     },
+
+    leaveGroup: async (conversationId) => {
+        await api.post(`/conversation/${conversationId}/leave`);
+    },
 }

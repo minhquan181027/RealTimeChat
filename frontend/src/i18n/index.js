@@ -2,12 +2,12 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import vi from "./locales/vi.json";
 import en from "./locales/en.json";
-import ja from "./locales/ja.json"; // 🆕 1. Import file tiếng Nhật
+import ja from "./locales/ja.json"; 
 
 export const LANGUAGES = [
     { code: "vi", label: "Tiếng Việt" },
     { code: "en", label: "English" },
-    { code: "ja", label: "日本語" }, // 🆕 2. Thêm Nhật Bản vào danh sách
+    { code: "ja", label: "日本語" }, 
 ];
 
 const saved = localStorage.getItem("lang");
@@ -16,7 +16,7 @@ i18n.use(initReactI18next).init({
     resources: {
         vi: { translation: vi },
         en: { translation: en },
-        ja: { translation: ja }  // 🆕 3. Thêm vào resources
+        ja: { translation: ja }  
     },
     lng: LANGUAGES.some((l) => l.code === saved) ? saved : "vi",
     fallbackLng: "vi",

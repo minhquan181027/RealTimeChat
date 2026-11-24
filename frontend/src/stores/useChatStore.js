@@ -3,6 +3,8 @@ import { chatService } from '@/services/chatService';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
+import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const typingTimers = {};
 
@@ -395,6 +397,34 @@ export const useChatStore = create(
                     return true;
                 } catch (error) {
                     console.error("Lỗi decline:", error);
+                    return false;
+                }
+            },
+
+            removeConversation: (conversationId) => {
+                set((s) => {
+                    const messages = { ...s.messages };
+                    const cursors = { ...s.cursors };
+                    const typing = { ...s.typing };
+                    delete messages[conversationId];
+                    delete cursors[conversationId];
+                    delete typing[conversationId];
+                    return {
+                        conversations: s.conversations.filter((c) => c._id?.toString() !== conversationId?.toString()),
+                        messages,
+                        cursors,
+                        typing,
+                    };
+                });
+            },
+
+            leaveGroup: async (conversationId) => {
+                try {
+                    await chatService.leaveGroup(conversationId);
+                    get().removeConversation(conversationId);
+                    return true;
+                } catch (error) {
+                    toast.error(error.response?.data?.message || i18n.t("groupInfo.leaveFailed"));
                     return false;
                 }
             },

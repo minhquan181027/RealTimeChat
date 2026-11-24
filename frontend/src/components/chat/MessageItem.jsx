@@ -51,7 +51,7 @@ const MessageItem = React.memo(({ m, chat, onRetry, setSelectedImage, onImageLoa
                 )}
             >
                 {!m.mine && chat.isGroup && (
-                    <div className="mb-1 text-[13px] font-medium text-muted-foreground/60">{m.sender}</div>
+                    <div className="mb-1 text-[13px] font-medium text-muted-foreground">{m.sender}</div>
                 )}
 
                 {m.imgURL && (

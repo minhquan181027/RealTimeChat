@@ -1,6 +1,6 @@
 // src/components/chat/ChatWindowHeader.jsx
 import { useEffect, useState } from "react";
-import { Video, MoreVertical, ChevronLeft, UserPlus, Users } from "lucide-react";
+import { Video, MoreVertical, ChevronLeft, UserPlus, Users, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "./StatusBadge";
@@ -10,7 +10,7 @@ import { useSocketStore } from "@/stores/useSocketStore";
 import { useCallStore } from "@/stores/useCallStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const ChatWindowHeader = ({ chat, onBack }) => {
+const ChatWindowHeader = ({ chat, onBack, infoOpen, onToggleInfo }) => {
     const { t } = useTranslation();
     const [, setNow] = useState(() => Date.now());
     const [addOpen, setAddOpen] = useState(false);
@@ -90,13 +90,24 @@ const ChatWindowHeader = ({ chat, onBack }) => {
                         <Button variant="ghost" size="icon" onClick={() => setAddOpen(true)} title={t("header.addMember")}>
                             <UserPlus className="size-5" />
                         </Button>
+
                     )}
+
                     <Button variant="ghost" size="icon" onClick={handleStartCall} disabled={!chat.id}>
                         <Video className="size-5" />
                     </Button>
-                    <Button variant="ghost" size="icon">
-                        <MoreVertical className="size-5" />
-                    </Button>
+                    {chat.isGroup && chat.id && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onToggleInfo}
+                            title={t("groupInfo.title")}
+                            className={infoOpen ? "bg-muted text-primary" : ""}
+                        >
+                            <Info className="size-5" />
+                        </Button>
+                    )}
+
                 </div>
             </div>
 

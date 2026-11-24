@@ -71,6 +71,9 @@ export const useSocketStore = create((set, get) => ({
             useChatStore.getState().updateConversationSeen(data.conversationId, data.seenBy);
         });
 
+        socket.on("conversation_removed", ({ conversationId }) => {
+            useChatStore.getState().removeConversation(conversationId);
+        });
         socket.on("typing", (data) => {
             useChatStore.getState().setTyping(data);
         });

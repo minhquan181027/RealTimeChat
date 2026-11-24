@@ -28,6 +28,10 @@ const getMembers = async (conversationId) => {
     return members;
 };
 
+export const invalidateMembers = (conversationId) => {
+    memberCache.delete(conversationId.toString());
+};
+
 export const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {

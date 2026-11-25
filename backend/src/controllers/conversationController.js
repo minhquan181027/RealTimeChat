@@ -4,6 +4,7 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import { getIO, invalidateMembers } from "../socket/index.js";
 import { areUsersBlocked, findNonFriendIds } from "../middlewares/friendMiddleware.js";
+import { deleteMessageCloudinaryMedia } from "../services/cloudinaryMediaService.js";
 
 const USER_FIELDS = "_id displayName avatarUrl lastActiveAt";
 const PARTICIPANT_FIELDS = `${USER_FIELDS} username`;
@@ -39,6 +40,19 @@ const formatConversation = (conversation, userId) => {
             status: p.status || "accepted",
         })),
     };
+};
+
+const cleanupConversationMedia = async (conversationId) => {
+    const messages = await Message.find({ conversationId })
+        .select("senderId imgURL audioURL")
+        .lean();
+
+    for (const message of messages) {
+        const complete = await deleteMessageCloudinaryMedia(message, { excludeConversationId: conversationId });
+        if (!complete) {
+            console.warn(`Không thể xác định quyền sở hữu media của tin nhắn ${message._id}; giữ nguyên tham chiếu.`);
+        }
+    }
 };
 
 export const createConversation = async (req, res) => {
@@ -214,18 +228,27 @@ export const getMessages = async (req, res) => {
             .lean();
 
         const recalledMedia = messages.filter(
-            (message) => message.recalledAt && (message.imgURL || message.gifProvider || message.gifId)
+            (message) => message.recalledAt && (message.imgURL || message.audioURL || message.gifProvider || message.gifId)
         );
-        if (recalledMedia.length) {
-            await Message.updateMany(
-                { _id: { $in: recalledMedia.map((message) => message._id) } },
-                { $unset: { imgURL: 1, gifProvider: 1, gifId: 1 } }
-            );
-            recalledMedia.forEach((message) => {
-                delete message.imgURL;
-                delete message.gifProvider;
-                delete message.gifId;
-            });
+        for (const message of recalledMedia) {
+            try {
+                const complete = await deleteMessageCloudinaryMedia(message);
+                if (complete) {
+                    await Message.updateOne(
+                        { _id: message._id },
+                        { $unset: { imgURL: 1, audioURL: 1, audioDuration: 1, gifProvider: 1, gifId: 1 } }
+                    );
+                } else {
+                    console.warn(`Không thể xác định quyền sở hữu media của tin nhắn đã thu hồi ${message._id}.`);
+                }
+            } catch (error) {
+                console.error(`Lỗi dọn media cho tin nhắn đã thu hồi ${message._id}:`, error);
+            }
+            delete message.imgURL;
+            delete message.audioURL;
+            delete message.audioDuration;
+            delete message.gifProvider;
+            delete message.gifId;
         }
 
         let nextCursor = null;
@@ -492,6 +515,7 @@ export const leaveGroup = async (req, res) => {
             const affectedIds = conversation.participants
                 .filter((p) => p.status !== "declined")
                 .map((p) => p.userId.toString());
+            await cleanupConversationMedia(conversation._id);
             await Message.deleteMany({ conversationId: conversation._id });
             await conversation.deleteOne();
             invalidateMembers(conversationId);
@@ -501,6 +525,7 @@ export const leaveGroup = async (req, res) => {
 
         // Không còn ai thì xóa hẳn nhóm
         if (remainingIds.length === 0) {
+            await cleanupConversationMedia(conversation._id);
             await Message.deleteMany({ conversationId: conversation._id });
             await conversation.deleteOne();
             invalidateMembers(conversationId);

@@ -20,7 +20,7 @@ const lastMessageSchema = new mongoose.Schema({
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: null },
 
-    type: { type: String, enum: ["text", "image", "gif", "video", "file", "system"], default: "text" }
+    type: { type: String, enum: ["text", "image", "audio", "gif", "video", "file", "system"], default: "text" }
 }, { _id: false });
 
 const conversationSchema = new mongoose.Schema({

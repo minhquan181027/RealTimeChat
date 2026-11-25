@@ -79,17 +79,22 @@ const ConversationActionsMenu = ({
         const targetUserIds = (conversation.participants || [])
             .filter((participant) => {
                 const participantId = participant._id || participant.userId?._id;
-                return participantId?.toString() !== currentUser._id.toString();
+                return (
+                    participantId?.toString() !== currentUser._id.toString() &&
+                    participant.status !== "declined"
+                );
             })
             .map((participant) => participant._id || participant.userId?._id);
         if (!targetUserIds.length) return;
 
+        const callId = crypto.randomUUID();
         socket.emit("call_user", {
+            callId,
             targetUserIds,
             roomName: conversation._id,
-            caller: currentUser,
         });
         startOutgoingCall({
+            callId,
             roomName: conversation._id,
             targetUserIds,
             targetName: name,

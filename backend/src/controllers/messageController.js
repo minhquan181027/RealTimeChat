@@ -1,16 +1,27 @@
 import Conversation from "../models/Conversation.js";
 import { areUsersBlocked, findNonFriendIds } from "../middlewares/friendMiddleware.js";
 import Message from "../models/Message.js";
+import mongoose from "mongoose";
+import { randomUUID } from "crypto";
 import cloudinary from 'cloudinary';
 import multer from 'multer';
 import { getIO } from "../socket/index.js";
 import { translateForRecipients } from "../services/translateService.js";
 import { translateText } from "../services/translateService.js";
+import {
+    deleteOwnedCloudinaryMedia,
+    deleteMessageCloudinaryMedia,
+    isOwnedCloudinaryMedia,
+} from "../services/cloudinaryMediaService.js";
 
 cloudinary.v2.config();
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+const audioUpload = multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 const getGifPayload = (gifProvider, gifId, imgURL) => {
     if (gifProvider === undefined && gifId === undefined) return null;
@@ -63,7 +74,7 @@ const emitNewMessage = (conversation, message) => {
 
 export const sendDirectMessage = async (req, res) => {
     try {
-        const { recipientId, content, imgURL, gifProvider, gifId } = req.body;
+        const { recipientId, content, imgURL, audioURL, audioDuration, gifProvider, gifId } = req.body;
         let { conversationId } = req.body;
         const senderId = req.user._id;
         const gifPayload = getGifPayload(gifProvider, gifId, imgURL);
@@ -71,7 +82,20 @@ export const sendDirectMessage = async (req, res) => {
         if (gifPayload === false) {
             return res.status(400).json({ message: "GIF không hợp lệ" });
         }
-        if (!content?.trim() && !imgURL && !gifPayload) {
+        if (audioURL && (
+            typeof audioURL !== "string" ||
+            !Number.isFinite(audioDuration) ||
+            audioDuration < 0 ||
+            imgURL ||
+            gifPayload ||
+            !isOwnedCloudinaryMedia(audioURL, "audio", senderId)
+        )) {
+            return res.status(400).json({ message: "Thông tin tin nhắn ghi âm không hợp lệ" });
+        }
+        if (imgURL && !isOwnedCloudinaryMedia(imgURL, "image", senderId)) {
+            return res.status(400).json({ message: "Ảnh không hợp lệ" });
+        }
+        if (!content?.trim() && !imgURL && !audioURL && !gifPayload) {
             return res.status(400).json({ message: "Thiếu nội dung tin nhắn" });
         }
 
@@ -127,13 +151,15 @@ export const sendDirectMessage = async (req, res) => {
         }
 
 
-        const messageType = gifPayload ? "gif" : imgURL ? "image" : "text";
+        const messageType = gifPayload ? "gif" : audioURL ? "audio" : imgURL ? "image" : "text";
 
         const message = await Message.create({
             conversationId: conversation._id,
             senderId,
             content,
             imgURL,
+            audioURL,
+            audioDuration,
             ...gifPayload,
             type: messageType,
         });
@@ -156,7 +182,7 @@ export const sendDirectMessage = async (req, res) => {
 
 export const sendGroupMessage = async (req, res) => {
     try {
-        const { conversationId, content, imgURL, gifProvider, gifId } = req.body;
+        const { conversationId, content, imgURL, audioURL, audioDuration, gifProvider, gifId } = req.body;
         const senderId = req.user._id;
         const gifPayload = getGifPayload(gifProvider, gifId, imgURL);
 
@@ -166,7 +192,20 @@ export const sendGroupMessage = async (req, res) => {
         if (gifPayload === false) {
             return res.status(400).json({ message: "GIF không hợp lệ" });
         }
-        if (!content?.trim() && !imgURL && !gifPayload) {
+        if (audioURL && (
+            typeof audioURL !== "string" ||
+            !Number.isFinite(audioDuration) ||
+            audioDuration < 0 ||
+            imgURL ||
+            gifPayload ||
+            !isOwnedCloudinaryMedia(audioURL, "audio", senderId)
+        )) {
+            return res.status(400).json({ message: "Thông tin tin nhắn ghi âm không hợp lệ" });
+        }
+        if (imgURL && !isOwnedCloudinaryMedia(imgURL, "image", senderId)) {
+            return res.status(400).json({ message: "Ảnh không hợp lệ" });
+        }
+        if (!content?.trim() && !imgURL && !audioURL && !gifPayload) {
             return res.status(400).json({ message: "Thiếu nội dung tin nhắn" });
         }
 
@@ -183,13 +222,15 @@ export const sendGroupMessage = async (req, res) => {
         }
 
         // 🆕 Tự động xác định type
-        const messageType = gifPayload ? "gif" : imgURL ? "image" : "text";
+        const messageType = gifPayload ? "gif" : audioURL ? "audio" : imgURL ? "image" : "text";
 
         const message = await Message.create({
             conversationId,
             senderId,
             content,
             imgURL,
+            audioURL,
+            audioDuration,
             ...gifPayload,
             type: messageType,
         });
@@ -223,7 +264,10 @@ export const uploadImage = [
             // Upload buffer lên Cloudinary
             const result = await new Promise((resolve, reject) => {
                 const uploadStream = cloudinary.v2.uploader.upload_stream(
-                    { folder: 'chat_app' }, // Thư mục trên Cloudinary
+                    {
+                        public_id: `chat_app/${req.user._id}/${randomUUID()}`,
+                        resource_type: "image",
+                    },
                     (error, result) => {
                         if (error) reject(error);
                         else resolve(result);
@@ -241,6 +285,69 @@ export const uploadImage = [
     },
 ];
 
+export const uploadAudio = (req, res) => {
+    audioUpload.single("audio")(req, res, async (uploadError) => {
+        if (uploadError) {
+            const status = uploadError.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+            return res.status(status).json({ message: "Không thể tải tệp ghi âm lên" });
+        }
+
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: "Vui lòng chọn tệp ghi âm." });
+            }
+            if (!req.file.mimetype.startsWith("audio/")) {
+                return res.status(400).json({ message: "Tệp tải lên không phải âm thanh." });
+            }
+
+            const result = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.v2.uploader.upload_stream(
+                    {
+                        public_id: `chat_app/${req.user._id}/audio/${randomUUID()}`,
+                        resource_type: "video",
+                    },
+                    (error, uploaded) => {
+                        if (error) reject(error);
+                        else resolve(uploaded);
+                    }
+                );
+                uploadStream.end(req.file.buffer);
+            });
+
+            return res.status(200).json({ url: result.secure_url });
+        } catch (error) {
+            console.error("Lỗi upload ghi âm:", error);
+            return res.status(500).json({ message: "Lỗi server khi upload ghi âm." });
+        }
+    });
+};
+
+export const cleanupUploadedMedia = async (req, res) => {
+    const { url, mediaType } = req.body;
+    if (typeof url !== "string" || !["image", "audio"].includes(mediaType)) {
+        return res.status(400).json({ message: "Thông tin media không hợp lệ" });
+    }
+
+    try {
+        const existingMessage = await Message.exists({
+            recalledAt: null,
+            $or: [{ imgURL: url }, { audioURL: url }],
+        });
+        if (existingMessage) {
+            return res.status(409).json({ message: "Media đang được một tin nhắn sử dụng" });
+        }
+
+        const deleted = await deleteOwnedCloudinaryMedia(url, mediaType, req.user._id);
+        if (!deleted) {
+            return res.status(403).json({ message: "Không thể xóa media này" });
+        }
+        return res.status(200).json({ deleted: true });
+    } catch (error) {
+        console.error("Lỗi xóa media Cloudinary:", error);
+        return res.status(500).json({ message: "Không thể xóa media trên Cloudinary" });
+    }
+};
+
 const emitMessageUpdate = (conversation, event, payload) => {
     const io = getIO();
     conversation.participants.forEach((p) => {
@@ -251,30 +358,38 @@ const emitMessageUpdate = (conversation, event, payload) => {
 
 export const recallMessage = async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.messageId)) {
+            return res.status(400).json({ message: "ID tin nhắn không hợp lệ" });
+        }
         const message = await Message.findById(req.params.messageId);
         if (!message) return res.status(404).json({ message: "Không tìm thấy tin nhắn" });
         if (message.senderId.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Bạn không thể thu hồi tin nhắn này" });
         }
-        if (message.recalledAt) {
-            if (message.imgURL || message.gifProvider || message.gifId) {
-                message.set({
-                    imgURL: undefined,
-                    gifProvider: undefined,
-                    gifId: undefined,
-                });
-                await message.save();
-            }
-            return res.status(200).json({ message });
+        if (!message.recalledAt) {
+            message.recalledAt = new Date();
+            message.recalledBy = req.user._id;
+            await message.save();
         }
 
-        message.recalledAt = new Date();
-        message.recalledBy = req.user._id;
-        message.set({
-            imgURL: undefined,
-            gifProvider: undefined,
-            gifId: undefined,
-        });
+        let mediaCleanupComplete;
+        try {
+            mediaCleanupComplete = await deleteMessageCloudinaryMedia(message);
+        } catch (error) {
+            console.error("Lỗi xóa media khi thu hồi tin nhắn:", error);
+            return res.status(502).json({ message: "Chưa thể xóa media trên Cloudinary. Hãy thử lại." });
+        }
+
+        message.set({ gifProvider: undefined, gifId: undefined });
+        if (mediaCleanupComplete) {
+            message.set({
+                imgURL: undefined,
+                audioURL: undefined,
+                audioDuration: undefined,
+            });
+        } else {
+            console.warn("Giữ lại tham chiếu media cũ không thuộc thư mục Cloudinary của người gửi.");
+        }
         await message.save();
 
         const conversation = await Conversation.findById(message.conversationId);

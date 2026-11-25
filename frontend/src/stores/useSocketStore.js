@@ -5,6 +5,8 @@ import { useAuthStore } from './useAuthStore';
 import { useChatStore } from './useChatStore';
 import { useFriendStore } from './useFriendStore';
 import { useCallStore } from './useCallStore';
+import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const baseURL = import.meta.env.VITE_SOCKET_URL;
 
@@ -137,13 +139,26 @@ export const useSocketStore = create((set, get) => ({
             useCallStore.getState().receiveIncomingCall(data);
         });
 
-        socket.on("call_accepted", () => {
-            useCallStore.getState().acceptCall();
+        socket.on("call_accepted", ({ callId }) => {
+            if (useCallStore.getState().callState?.callId === callId) {
+                useCallStore.getState().acceptCall();
+            }
         });
 
-        socket.on("call_rejected", () => {
-            useCallStore.getState().endCall();
-            // Có thể hiện thông báo "Người dùng đã từ chối cuộc gọi"
+        socket.on("call_ended", ({ callId }) => {
+            useCallStore.getState().endCall(callId);
+        });
+
+        socket.on("call_timeout", ({ callId }) => {
+            useCallStore.getState().endCall(callId);
+        });
+
+        socket.on("call_failed", ({ callId }) => {
+            const callState = useCallStore.getState().callState;
+            if (callId && callState?.callId === callId) {
+                useCallStore.getState().endCall(callId);
+                toast.error(i18n.t("call.failed"));
+            }
         });
 
     },

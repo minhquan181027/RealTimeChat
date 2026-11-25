@@ -1,4 +1,7 @@
 export const systemText = (t, meta, fallback) => {
+    if (meta?.action === "call_history") {
+        return t(`call.history.${meta.status}`, { defaultValue: t("call.videoCall") });
+    }
     if (meta?.action === "members_added") {
         return t("system.membersAdded", {
             actor: meta.actor,

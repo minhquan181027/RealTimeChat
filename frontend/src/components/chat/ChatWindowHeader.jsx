@@ -40,17 +40,19 @@ const ChatWindowHeader = ({
         const targetUserIds = (chat.participants || [])
             .filter((p) => {
                 const pId = p._id || p.userId?._id;
-                return pId?.toString() !== currentUser._id.toString();
+                return pId?.toString() !== currentUser._id.toString() && p.status !== "declined";
             })
             .map((p) => p._id || p.userId?._id);
 
+        const callId = crypto.randomUUID();
         socket.emit("call_user", {
+            callId,
             targetUserIds,
             roomName: chat.id,
-            caller: currentUser,
         });
 
         startOutgoingCall({
+            callId,
             roomName: chat.id,
             targetUserIds,
             targetName: chat.name,

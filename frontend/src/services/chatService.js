@@ -23,14 +23,14 @@ export const chatService = {
         return res.data; // { conversation }
     },
 
-    sendFirstMessage: async ({ recipientId, content, gifProvider, gifId }) => {
-        const res = await api.post("/message/direct", { recipientId, content, gifProvider, gifId });
+    sendFirstMessage: async ({ recipientId, content, audioURL, audioDuration, gifProvider, gifId }) => {
+        const res = await api.post("/message/direct", { recipientId, content, audioURL, audioDuration, gifProvider, gifId });
         return res.data.message;
     },
 
-    sendMessage: async ({ conversationId, type, content, imgURL, gifProvider, gifId }) => {
+    sendMessage: async ({ conversationId, type, content, imgURL, audioURL, audioDuration, gifProvider, gifId }) => {
         const url = type === "group" ? "/message/group" : "/message/direct";
-        const res = await api.post(url, { conversationId, content, imgURL, gifProvider, gifId });
+        const res = await api.post(url, { conversationId, content, imgURL, audioURL, audioDuration, gifProvider, gifId });
         return res.data.message; // backend trả { message }
     },
 
@@ -66,6 +66,20 @@ export const chatService = {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return res.data.url; // Trả về URL từ Cloudinary
+    },
+
+    uploadAudio: async (file) => {
+        const formData = new FormData();
+        formData.append("audio", file);
+        const res = await api.post("/message/upload-audio", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        return res.data.url;
+    },
+
+    cleanupUploadedMedia: async (url, mediaType) => {
+        const res = await api.post("/message/cleanup-upload", { url, mediaType });
+        return res.data;
     },
 
     markAsRead: async (conversationId) => {

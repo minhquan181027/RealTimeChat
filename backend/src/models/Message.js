@@ -18,6 +18,13 @@ const messageSchema = new mongoose.Schema({
     imgURL: {
         type: String,
     },
+    audioURL: {
+        type: String,
+    },
+    audioDuration: {
+        type: Number,
+        min: 0,
+    },
     gifProvider: {
         type: String,
         enum: ["giphy"],
@@ -31,7 +38,7 @@ const messageSchema = new mongoose.Schema({
     type: {
         type: String,
 
-        enum: ["text", "image", "gif", "video", "file", "system"],
+        enum: ["text", "image", "audio", "gif", "video", "file", "system"],
         default: "text"
     },
     meta: { type: mongoose.Schema.Types.Mixed },

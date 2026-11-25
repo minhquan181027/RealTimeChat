@@ -17,10 +17,10 @@ import { toast } from "sonner";
 const SCROLL_THRESHOLD = 80;
 
 const ChatWindow = ({
-    chat, messages, onBack, onTyping, onSend, onRetry, onUpload, onAccept, onDecline,
+    chat, messages, onBack, onTyping, onSend, onRetry, onUpload, onSendAudio, onAccept, onDecline,
     onSendGif,
     sending, uploading, onLoadMore, hasMore, loading,
-    friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onMemberClick, onLeaveGroup, onRemoveMember,
+    friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onCallAgain, onMemberClick, onLeaveGroup, onRemoveMember,
     onSetDeputyAdmin, directBlockStatus, leavePromptRequest = 0, onClearLeavePromptRequest, className,
 }) => {
     const { t } = useTranslation();
@@ -237,6 +237,7 @@ const ChatWindow = ({
                                     setSelectedImage={setSelectedImage}
                                     onImageLoad={handleImageLoad}
                                     onAvatarClick={onAvatarClick}
+                                    onCallAgain={onCallAgain}
                                     gifPreviewUrl={gifMedia[m.gifId]?.previewUrl}
                                     gifMediaUrl={gifMedia[m.gifId]?.mediaUrl}
                                 />
@@ -336,7 +337,7 @@ const ChatWindow = ({
                     </div>
                 )}
 
-                <ChatInput onSend={onSend} onSendGif={handleGifSelect} onUpload={onUpload} onTyping={onTyping} disabled={inputDisabled} />
+                <ChatInput onSend={onSend} onSendGif={handleGifSelect} onUpload={onUpload} onSendAudio={onSendAudio} onTyping={onTyping} disabled={inputDisabled} />
             </div>
 
             {/* Panel thông tin nhóm */}

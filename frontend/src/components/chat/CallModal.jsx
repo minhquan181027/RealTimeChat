@@ -9,6 +9,8 @@ import { useCallStore } from "@/stores/useCallStore";
 import { useSocketStore } from "@/stores/useSocketStore";
 import { chatService } from "@/services/chatService";
 
+const CALL_RING_TIMEOUT_MS = 2 * 60 * 1000;
+
 const LiveKitRoomWrapper = ({ roomName, onLeave }) => {
     const { t } = useTranslation();
     const [token, setToken] = useState(null);
@@ -47,8 +49,20 @@ const LiveKitRoomWrapper = ({ roomName, onLeave }) => {
 
 const CallModal = () => {
     const { t } = useTranslation();
-    const { callState, isInCall, acceptCall, endCall } = useCallStore();
+    const { callState, isInCall, endCall } = useCallStore();
     const socket = useSocketStore((state) => state.socket);
+    const callId = callState?.callId;
+    const startedAt = callState?.startedAt;
+
+    useEffect(() => {
+        if (!callId || isInCall) return undefined;
+        const remaining = Math.max(
+            0,
+            CALL_RING_TIMEOUT_MS - (Date.now() - (startedAt || Date.now()))
+        );
+        const timeout = setTimeout(() => endCall(callId), remaining);
+        return () => clearTimeout(timeout);
+    }, [callId, startedAt, isInCall, endCall]);
 
     if (!callState) return null;
 
@@ -56,25 +70,11 @@ const CallModal = () => {
     const isIncoming = callState.type === "incoming";
 
     const handleAccept = () => {
-        socket.emit("accept_call", {
-            targetUserId: callState.caller._id,
-            roomName: callState.roomName,
-        });
-        acceptCall();
+        socket?.emit("accept_call", { callId: callState.callId });
     };
 
     const handleEnd = () => {
-        if (isIncoming) {
-            socket.emit("reject_call", {
-                targetUserId: callState.caller._id,
-                roomName: callState.roomName,
-            });
-        } else if (isOutgoing) {
-            socket.emit("reject_call", {
-                targetUserId: callState.targetUserIds[0],
-                roomName: callState.roomName,
-            });
-        }
+        socket?.emit("reject_call", { callId: callState.callId });
         endCall();
     };
 

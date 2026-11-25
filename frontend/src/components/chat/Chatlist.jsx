@@ -78,6 +78,7 @@ const ChatList = ({
                 lastMessageText = systemText(t, meta, content);
             } else {
                 if (type === "image") lastMessageText = t("chatList.image");
+                else if (type === "audio") lastMessageText = t("chatWindow.audio");
                 else if (type === "gif") lastMessageText = t("chatList.gif");
                 else if (type === "video") lastMessageText = t("chatList.video");
                 else lastMessageText = content || t("chatList.message");

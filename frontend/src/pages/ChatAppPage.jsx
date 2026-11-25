@@ -184,6 +184,8 @@ const ChatAppPage = () => {
                         ? m.translations?.[currentUser?.language || "vi"] || null
                         : null,
                 imgURL: m.imgURL || null,
+                audioURL: m.audioURL || m.uploadedAudioURL || null,
+                audioDuration: m.audioDuration || 0,
                 gifProvider: m.gifProvider || null,
                 gifId: m.gifId || null,
                 sender: m.senderId?.displayName || t("chatWindow.someone"),
@@ -283,12 +285,14 @@ const ChatAppPage = () => {
             return;
         }
 
+        const callId = crypto.randomUUID();
         socket.emit("call_user", {
+            callId,
             targetUserIds: [user._id],
             roomName: conv._id,
-            caller: currentUser,
         });
         startOutgoingCall({
+            callId,
             roomName: conv._id,
             targetUserIds: [user._id],
             targetName: user.displayName,
@@ -296,6 +300,35 @@ const ChatAppPage = () => {
         });
         setProfileUser(null);
     }, [conversations, socket, currentUser, startOutgoingCall, t]);
+
+    const handleCallAgain = useCallback(() => {
+        if (!activeConversation || !activeChat || !socket || !currentUser) return;
+
+        const targetUserIds = activeConversation.participants
+            .filter((participant) => {
+                const participantId = participant._id || participant.userId?._id;
+                return (
+                    participantId?.toString() !== currentUser._id.toString() &&
+                    participant.status !== "declined"
+                );
+            })
+            .map((participant) => participant._id || participant.userId?._id);
+        if (!targetUserIds.length) return;
+
+        const callId = crypto.randomUUID();
+        socket.emit("call_user", {
+            callId,
+            targetUserIds,
+            roomName: activeConversation._id,
+        });
+        startOutgoingCall({
+            callId,
+            roomName: activeConversation._id,
+            targetUserIds,
+            targetName: activeChat.name,
+            targetAvatar: activeChat.avatar,
+        });
+    }, [activeConversation, activeChat, socket, currentUser, startOutgoingCall]);
 
     const handleAccept = useCallback(async () => {
         if (!activeId) return;
@@ -441,6 +474,38 @@ const ChatAppPage = () => {
         }
     }, [activeConversation, currentUser]);
 
+    const handleSendAudio = useCallback(async (file, audioDuration) => {
+        if (!currentUser || uploadingRef.current) return;
+        uploadingRef.current = true;
+        setUploading(true);
+        try {
+            if (activeConversation) {
+                if (activeConversation.myStatus === "pending") setView("main");
+                await useChatStore.getState().sendAudioMessage({
+                    conversationId: activeConversation._id,
+                    type: activeConversation.type,
+                    file,
+                    audioDuration,
+                    senderUser: currentUser,
+                });
+            } else if (draftUser) {
+                const conversationId = await useChatStore.getState().startDirectChat({
+                    recipientId: draftUser._id,
+                    content: "",
+                    audioFile: file,
+                    audioDuration,
+                });
+                if (conversationId) {
+                    setDraftUser(null);
+                    setActiveId(conversationId);
+                }
+            }
+        } finally {
+            uploadingRef.current = false;
+            setUploading(false);
+        }
+    }, [activeConversation, currentUser, draftUser]);
+
     const hasMore = !!cursors?.[activeId];
     const hasOpenChat = !!activeId || !!draftUser;
 
@@ -487,6 +552,7 @@ const ChatAppPage = () => {
                             onSendGif={handleSendGif}
                             onRetry={handleRetry}
                             onUpload={handleUpload}
+                            onSendAudio={handleSendAudio}
                             onAccept={handleAccept}
                             onDecline={handleDecline}
                             onLeaveGroup={handleLeaveGroup}
@@ -496,6 +562,7 @@ const ChatAppPage = () => {
                             onSetDeputyAdmin={handleSetGroupDeputyAdmin}
                             directBlockStatus={directBlockStatus}
                             onAvatarClick={handleAvatarClick}
+                            onCallAgain={handleCallAgain}
                             onMemberClick={handleMemberClick}
                             friendStatus={friendInfo.status}
                             onSendFriend={handleSendFriend}

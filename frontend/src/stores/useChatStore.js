@@ -125,7 +125,7 @@ export const useChatStore = create(
                             ...s.messages,
                             [conversationId]: (s.messages[conversationId] || []).map((m) =>
                                 m._id?.toString() === messageId
-                                    ? { ...m, recalledAt, imgURL: undefined, gifProvider: undefined, gifId: undefined }
+                                    ? { ...m, recalledAt, imgURL: undefined, audioURL: undefined, gifProvider: undefined, gifId: undefined }
                                     : m
                             ),
                         },
@@ -133,6 +133,8 @@ export const useChatStore = create(
                 });
             },
             recallMessage: async (messageId) => {
+                const normalizedId = messageId?.toString();
+                if (!normalizedId || normalizedId.startsWith("temp-")) return false;
                 try {
                     const message = await chatService.recallMessage(messageId);
                     get().applyRecall({
@@ -207,6 +209,7 @@ export const useChatStore = create(
                             lastMessage: {
                                 _id: message._id,
                                 content: message.content,
+                                meta: message.meta,
                                 type: message.type,
                                 senderId: senderUserId,
                                 createdAt: message.createdAt,
@@ -245,16 +248,20 @@ export const useChatStore = create(
             },
 
             // ==================== START DIRECT CHAT (chat nháp -> tin đầu tiên) ====================
-            startDirectChat: async ({ recipientId, content, gifProvider, gifId }) => {
+            startDirectChat: async ({ recipientId, content, audioFile, audioDuration, gifProvider, gifId }) => {
                 const trimmed = content?.trim() ?? "";
-                if (!recipientId || (!trimmed && !gifId)) return null;
+                if (!recipientId || (!trimmed && !gifId && !audioFile)) return null;
                 if (get().sending["draft"]) return null;
 
                 set((s) => ({ sending: { ...s.sending, draft: true } }));
+                let uploadedAudioURL;
                 try {
+                    uploadedAudioURL = audioFile ? await chatService.uploadAudio(audioFile) : undefined;
                     const msg = await chatService.sendFirstMessage({
                         recipientId,
                         content: trimmed,
+                        audioURL: uploadedAudioURL,
+                        audioDuration,
                         gifProvider,
                         gifId,
                     });
@@ -262,6 +269,19 @@ export const useChatStore = create(
                     return msg.conversationId?.toString() ?? null;
                 } catch (err) {
                     console.error("Gửi tin đầu tiên thất bại:", err);
+                    if (audioFile) {
+                        if (uploadedAudioURL) {
+                            try {
+                                await chatService.cleanupUploadedMedia(uploadedAudioURL, "audio");
+                            } catch (cleanupError) {
+                                if (cleanupError.response?.status !== 409) {
+                                    console.error("Không thể dọn ghi âm upload thất bại:", cleanupError);
+                                    toast.error(i18n.t("chatWindow.mediaCleanupFailed"));
+                                }
+                            }
+                        }
+                        toast.error(err.response?.data?.message || i18n.t("chatWindow.audioSendFailed"));
+                    }
                     return null;
                 } finally {
                     set((s) => ({ sending: { ...s.sending, draft: false } }));
@@ -553,28 +573,76 @@ export const useChatStore = create(
                     sending: { ...s.sending, [conversationId]: true },
                 }));
 
+                let cleanupURL;
+                let cleanupMediaType;
                 try {
+                    let imgURL = temp.imgURL;
+                    let audioURL = temp.uploadedAudioURL;
+                    if (temp.type === "image") {
+                        cleanupMediaType = "image";
+                        imgURL = temp.uploadedImageURL;
+                        if (!imgURL) {
+                            if (!temp.imageFile) throw new Error("Tệp ảnh không còn khả dụng");
+                            imgURL = await chatService.uploadImage(temp.imageFile);
+                        }
+                        cleanupURL = imgURL;
+                    } else if (temp.type === "audio" && !audioURL) {
+                        cleanupMediaType = "audio";
+                        if (!temp.audioFile) throw new Error("Tệp ghi âm không còn khả dụng");
+                        audioURL = await chatService.uploadAudio(temp.audioFile);
+                        cleanupURL = audioURL;
+                    } else if (temp.type === "audio") {
+                        cleanupMediaType = "audio";
+                        cleanupURL = audioURL;
+                    }
                     const realMsg = await chatService.sendMessage({
                         conversationId,
                         type,
                         content: temp.content,
-                        imgURL: temp.imgURL,
+                        imgURL,
+                        audioURL,
+                        audioDuration: temp.audioDuration,
                         gifProvider: temp.gifProvider,
                         gifId: temp.gifId,
                     });
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
                     get()._replaceMessage(conversationId, tempId, merged);
                     get()._bumpConversation(conversationId, merged, senderUser._id);
+                    if (temp.audioURL?.startsWith("blob:")) URL.revokeObjectURL(temp.audioURL);
+                    if (temp.imgURL?.startsWith("blob:")) URL.revokeObjectURL(temp.imgURL);
                 } catch (err) {
                     console.error("Gửi lại tin nhắn thất bại:", err);
+                    let retainedUploadURL = cleanupURL;
+                    if (cleanupURL && cleanupMediaType) {
+                        try {
+                            await chatService.cleanupUploadedMedia(cleanupURL, cleanupMediaType);
+                            retainedUploadURL = undefined;
+                        } catch (cleanupError) {
+                            if (cleanupError.response?.status !== 409) {
+                                console.error("Không thể dọn media upload thất bại:", cleanupError);
+                                toast.error(i18n.t("chatWindow.mediaCleanupFailed"));
+                            }
+                        }
+                    }
                     set((s) => ({
                         messages: {
                             ...s.messages,
                             [conversationId]: (s.messages[conversationId] || []).map((m) =>
-                                m._id === tempId ? { ...m, _pending: false, _failed: true } : m
+                                m._id === tempId
+                                    ? {
+                                        ...m,
+                                        _pending: false,
+                                        _failed: true,
+                                        uploadedImageURL: cleanupMediaType === "image" ? retainedUploadURL : m.uploadedImageURL,
+                                        uploadedAudioURL: cleanupMediaType === "audio" ? retainedUploadURL : m.uploadedAudioURL,
+                                    }
+                                    : m
                             ),
                         },
                     }));
+                    toast.error(err.response?.data?.message || i18n.t(
+                        temp.type === "audio" ? "chatWindow.audioSendFailed" : "chatWindow.imageSendFailed"
+                    ));
                 } finally {
                     set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
                 }
@@ -594,6 +662,7 @@ export const useChatStore = create(
                     senderId: senderUser,
                     content: "",
                     imgURL: localUrl,
+                    imageFile: file,
                     type: "image",
                     createdAt: new Date().toISOString(),
                     _pending: true,
@@ -611,14 +680,23 @@ export const useChatStore = create(
                 get()._setMyStatus(conversationId, "accepted"); // trả lời -> lên chính thức
 
 
+                let uploadedImageURL;
                 try {
-                    const realUrl = await chatService.uploadImage(file);
+                    uploadedImageURL = await chatService.uploadImage(file);
+                    set((s) => ({
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                                m._id === tempId ? { ...m, uploadedImageURL } : m
+                            ),
+                        },
+                    }));
 
                     const realMsg = await chatService.sendMessage({
                         conversationId,
                         type,
                         content: "",
-                        imgURL: realUrl,
+                        imgURL: uploadedImageURL,
                     });
 
                     const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
@@ -628,14 +706,112 @@ export const useChatStore = create(
                     URL.revokeObjectURL(localUrl);
                 } catch (err) {
                     console.error("Gửi ảnh thất bại:", err.response?.data || err);
+                    let retainedUploadURL = uploadedImageURL;
+                    if (uploadedImageURL) {
+                        try {
+                            await chatService.cleanupUploadedMedia(uploadedImageURL, "image");
+                            retainedUploadURL = undefined;
+                        } catch (cleanupError) {
+                            if (cleanupError.response?.status !== 409) {
+                                console.error("Không thể dọn ảnh upload thất bại:", cleanupError);
+                                toast.error(i18n.t("chatWindow.mediaCleanupFailed"));
+                            }
+                        }
+                    }
                     set((s) => ({
                         messages: {
                             ...s.messages,
                             [conversationId]: (s.messages[conversationId] || []).map((m) =>
-                                m._id === tempId ? { ...m, _pending: false, _failed: true } : m
+                                m._id === tempId
+                                    ? { ...m, _pending: false, _failed: true, uploadedImageURL: retainedUploadURL }
+                                    : m
                             ),
                         },
                     }));
+                    toast.error(err.response?.data?.message || i18n.t("chatWindow.imageSendFailed"));
+                    get()._syncConversationLastMessage(conversationId);
+                } finally {
+                    set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));
+                }
+            },
+
+            sendAudioMessage: async ({ conversationId, type, file, audioDuration, senderUser }) => {
+                if (!conversationId || !senderUser || !file) return;
+                if (get().sending[conversationId]) return;
+
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                const localUrl = URL.createObjectURL(file);
+                const tempMsg = {
+                    _id: tempId,
+                    conversationId,
+                    senderId: senderUser,
+                    content: "",
+                    audioURL: localUrl,
+                    audioFile: file,
+                    audioDuration,
+                    type: "audio",
+                    createdAt: new Date().toISOString(),
+                    _pending: true,
+                    _failed: false,
+                };
+
+                set((s) => ({
+                    messages: {
+                        ...s.messages,
+                        [conversationId]: [...(s.messages[conversationId] || []), tempMsg],
+                    },
+                    sending: { ...s.sending, [conversationId]: true },
+                }));
+                get()._bumpConversation(conversationId, tempMsg, senderUser._id);
+                get()._setMyStatus(conversationId, "accepted");
+
+                let uploadedAudioURL;
+                try {
+                    uploadedAudioURL = await chatService.uploadAudio(file);
+                    set((s) => ({
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                                m._id === tempId ? { ...m, uploadedAudioURL } : m
+                            ),
+                        },
+                    }));
+
+                    const realMsg = await chatService.sendMessage({
+                        conversationId,
+                        type,
+                        content: "",
+                        audioURL: uploadedAudioURL,
+                        audioDuration,
+                    });
+                    const merged = { ...realMsg, senderId: senderUser, _pending: false, _failed: false };
+                    get()._replaceMessage(conversationId, tempId, merged);
+                    URL.revokeObjectURL(localUrl);
+                } catch (error) {
+                    console.error("Gửi ghi âm thất bại:", error.response?.data || error);
+                    let retainedUploadURL = uploadedAudioURL;
+                    if (uploadedAudioURL) {
+                        try {
+                            await chatService.cleanupUploadedMedia(uploadedAudioURL, "audio");
+                            retainedUploadURL = undefined;
+                        } catch (cleanupError) {
+                            if (cleanupError.response?.status !== 409) {
+                                console.error("Không thể dọn ghi âm upload thất bại:", cleanupError);
+                                toast.error(i18n.t("chatWindow.mediaCleanupFailed"));
+                            }
+                        }
+                    }
+                    set((s) => ({
+                        messages: {
+                            ...s.messages,
+                            [conversationId]: (s.messages[conversationId] || []).map((m) =>
+                                m._id === tempId
+                                    ? { ...m, _pending: false, _failed: true, uploadedAudioURL: retainedUploadURL }
+                                    : m
+                            ),
+                        },
+                    }));
+                    toast.error(error.response?.data?.message || i18n.t("chatWindow.audioSendFailed"));
                     get()._syncConversationLastMessage(conversationId);
                 } finally {
                     set((s) => ({ sending: { ...s.sending, [conversationId]: false } }));

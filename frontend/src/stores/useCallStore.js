@@ -7,8 +7,15 @@ export const useCallStore = create((set) => ({
     callState: null,
     isInCall: false, // Trạng thái đã kết nối vào LiveKit chưa
 
-    startOutgoingCall: (data) => set({ callState: { ...data, type: 'outgoing' } }),
-    receiveIncomingCall: (data) => set({ callState: { ...data, type: 'incoming' } }),
+    startOutgoingCall: (data) => set({
+        callState: { ...data, startedAt: data.startedAt || Date.now(), type: 'outgoing' },
+    }),
+    receiveIncomingCall: (data) => set({
+        callState: { ...data, startedAt: data.startedAt || Date.now(), type: 'incoming' },
+    }),
     acceptCall: () => set({ isInCall: true }),
-    endCall: () => set({ callState: null, isInCall: false }),
+    endCall: (callId) => set((state) => {
+        if (callId && state.callState?.callId !== callId) return state;
+        return { callState: null, isInCall: false };
+    }),
 }));

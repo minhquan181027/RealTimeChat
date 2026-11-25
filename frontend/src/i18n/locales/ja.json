@@ -280,7 +280,21 @@
     "call": {
         "incoming": "ビデオ通話の着信...",
         "calling": "発信中...",
-        "connecting": "接続中..."
+        "connecting": "接続中...",
+        "videoCall": "ビデオ通話",
+        "missedTitle": "不在着信",
+        "rejected": "通話が拒否されました",
+        "cancelled": "通話がキャンセルされました",
+        "failed": "通話を開始できませんでした",
+        "callAgain": "もう一度発信",
+        "durationSeconds": "{{seconds}}秒",
+        "durationMinutes": "{{minutes}}分{{seconds}}秒",
+        "history": {
+            "completed": "ビデオ通話",
+            "missed": "不在着信",
+            "rejected": "通話が拒否されました",
+            "cancelled": "通話がキャンセルされました"
+        }
     },
     "toast": {
         "signUpOk": "登録に成功しました。",

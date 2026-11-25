@@ -22,11 +22,11 @@ const NAV_TOP = [
     { key: "main", icon: MessageSquare },
     { key: "pending", icon: Inbox },
     { key: "contacts", icon: Users },
-    { key: "profile", icon: User },
 ];
 
 const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
     const signOut = useAuthStore((state) => state.signOut);
+    const user = useAuthStore((state) => state.user);
     const pendingCount = useChatStore(
         (s) => s.conversations.filter((c) => c.myStatus === "pending").length
     );
@@ -40,6 +40,7 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
     const handleLogout = async () => {
         await signOut();
     };
+    const userInitial = user?.displayName?.trim()?.[0]?.toUpperCase() || "?";
 
     return (
         <>
@@ -48,9 +49,19 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
                 mobileHidden && "hidden"
             )}>
                 <header className="flex justify-center py-4">
-                    <div className="flex size-9 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                        Z
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setAccountOpen(true)}
+                        title={t("sidebar.account")}
+                        aria-label={t("sidebar.account")}
+                        className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-semibold text-primary-foreground"
+                    >
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                        ) : (
+                            userInitial
+                        )}
+                    </button>
                 </header>
                 <nav className="flex flex-col items-center gap-2 px-1 pt-2">
                     {NAV_TOP.map(({ key, icon: Icon }) => {
@@ -61,10 +72,7 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
                                 type="button"
                                 title={t(`sidebar.${key}`)}
                                 aria-label={t(`sidebar.${key}`)}
-                                onClick={() => {
-                                    if (["main", "pending", "contacts"].includes(key)) onChangeView?.(key);
-                                    if (key === "profile") setAccountOpen(true);
-                                }}
+                                onClick={() => onChangeView?.(key)}
                                 className={cn(
                                     "relative flex size-10 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                                     view === key && "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -116,9 +124,19 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
 
             <Sidebar collapsible="icon" className="hidden md:flex">
                 <SidebarHeader className="items-center py-4">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                        Z
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setAccountOpen(true)}
+                        title={t("sidebar.account")}
+                        aria-label={t("sidebar.account")}
+                        className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary font-semibold text-primary-foreground"
+                    >
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                        ) : (
+                            userInitial
+                        )}
+                    </button>
                 </SidebarHeader>
 
                 <SidebarContent className="items-center px-1 pt-2">
@@ -130,10 +148,7 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
                                     <SidebarMenuButton
                                         isActive={view === key}
                                         tooltip={t(`sidebar.${key}`)}
-                                        onClick={() => {
-                                            if (["main", "pending", "contacts"].includes(key)) onChangeView?.(key);
-                                            if (key === "profile") setAccountOpen(true);
-                                        }}
+                                        onClick={() => onChangeView?.(key)}
                                         className="justify-center [&_svg]:size-5!"
                                     >
                                         <span className="relative">

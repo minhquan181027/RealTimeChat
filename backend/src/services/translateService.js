@@ -27,7 +27,7 @@ export const shouldTranslate = (text) => {
     // 3. Phải có chứa chữ cái
     if (!/\p{L}/u.test(s)) return false;
 
-    // 🆕 4. CHỐNG SPAM KÝ TỰ LẶP LẠI (Ví dụ: "hiiiiii", "aaaaa")
+    // CHỐNG SPAM KÝ TỰ LẶP LẠI (Ví dụ: "hiiiiii", "aaaaa")
     // Nếu có bất kỳ ký tự nào lặp lại 4 lần liên tiếp -> Bỏ qua
     if (/(.)\1{3,}/u.test(s)) return false;
 

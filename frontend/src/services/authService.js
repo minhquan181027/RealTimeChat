@@ -30,6 +30,11 @@ export const authService = {
 
     fetchMe: async () => {
         const res = await api.get("/user/me", { withCredentials: true });
+        return res.data;
+    },
+
+    completeSetup: async (payload) => {
+        const res = await api.post("/user/me/setup", payload);
         return res.data.user;
     },
 

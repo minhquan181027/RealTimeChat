@@ -3,6 +3,9 @@ import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
 import Conversation from "../models/Conversation.js";
 import { getIO } from "../socket/index.js";
+import Block from "../models/Block.js";
+import mongoose from "mongoose";
+import { areUsersBlocked } from "../middlewares/friendMiddleware.js";
 
 export const sendFriendRequest = async (req, res) => {
     try {
@@ -17,6 +20,9 @@ export const sendFriendRequest = async (req, res) => {
 
         const userExists = await User.exists({ _id: to });
         if (!userExists) return res.status(404).json({ message: "Người dùng không tồn tại" });
+        if (await areUsersBlocked(from, to)) {
+            return res.status(403).json({ message: "Không thể gửi lời mời kết bạn cho người dùng này." });
+        }
 
         let userA = from.toString();
         let userB = to.toString();
@@ -61,6 +67,10 @@ export const acceptFriendRequest = async (req, res) => {
         // Chỉ người nhận mới được chấp nhận
         if (request.to.toString() !== userId.toString()) {
             return res.status(403).json({ message: "Bạn không có quyền chấp nhận lời mời này" });
+        }
+        if (await areUsersBlocked(request.from, request.to)) {
+            await FriendRequest.findByIdAndDelete(requestId);
+            return res.status(403).json({ message: "Không thể chấp nhận lời mời do có chặn người dùng." });
         }
 
         // pre('save') trong Friend sẽ tự sắp xếp userA < userB
@@ -197,5 +207,98 @@ export const removeFriend = async (req, res) => {
     } catch (error) {
         console.error("Lỗi khi xóa bạn bè.", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const getBlockStatus = async (req, res) => {
+    try {
+        const { userId: targetId } = req.params;
+        const userId = req.user._id;
+        if (!mongoose.isValidObjectId(targetId)) {
+            return res.status(400).json({ message: "ID người dùng không hợp lệ." });
+        }
+        if (targetId === userId.toString()) {
+            return res.status(400).json({ message: "Không thể kiểm tra trạng thái chặn của chính mình." });
+        }
+
+        const [blockedByMe, blockedMe] = await Promise.all([
+            Block.exists({ blockedBy: userId, blockedUser: targetId }),
+            Block.exists({ blockedBy: targetId, blockedUser: userId }),
+        ]);
+        return res.status(200).json({ blockedByMe: !!blockedByMe, blockedMe: !!blockedMe });
+    } catch (error) {
+        console.error("Lỗi khi lấy trạng thái chặn:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống." });
+    }
+};
+
+export const blockUser = async (req, res) => {
+    try {
+        const { userId: targetId } = req.params;
+        const userId = req.user._id;
+        if (!mongoose.isValidObjectId(targetId)) {
+            return res.status(400).json({ message: "ID người dùng không hợp lệ." });
+        }
+        if (targetId === userId.toString()) {
+            return res.status(400).json({ message: "Không thể chặn chính mình." });
+        }
+        if (!(await User.exists({ _id: targetId }))) {
+            return res.status(404).json({ message: "Người dùng không tồn tại." });
+        }
+
+        try {
+            await Block.create({ blockedBy: userId, blockedUser: targetId });
+        } catch (error) {
+            if (error.code !== 11000) throw error;
+        }
+
+        let userA = userId.toString();
+        let userB = targetId;
+        if (userA > userB) [userA, userB] = [userB, userA];
+        await Promise.all([
+            Friend.findOneAndDelete({ userA, userB }),
+            FriendRequest.deleteMany({
+                $or: [
+                    { from: userId, to: targetId },
+                    { from: targetId, to: userId },
+                ],
+            }),
+        ]);
+
+        const io = getIO();
+        io.to(userId.toString()).emit("friend_removed", { userId: targetId });
+        io.to(targetId).emit("friend_removed", { userId: userId.toString() });
+        io.to(userId.toString()).emit("friend_requests_updated");
+        io.to(targetId).emit("friend_requests_updated");
+        io.to(userId.toString()).emit("block_status_changed", { userId: targetId });
+        io.to(targetId).emit("block_status_changed", { userId: userId.toString() });
+
+        const blockedMe = await Block.exists({ blockedBy: targetId, blockedUser: userId });
+        return res.status(200).json({ blockedByMe: true, blockedMe: !!blockedMe });
+    } catch (error) {
+        console.error("Lỗi khi chặn người dùng:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống." });
+    }
+};
+
+export const unblockUser = async (req, res) => {
+    try {
+        const { userId: targetId } = req.params;
+        const userId = req.user._id;
+        if (!mongoose.isValidObjectId(targetId)) {
+            return res.status(400).json({ message: "ID người dùng không hợp lệ." });
+        }
+        if (targetId === userId.toString()) {
+            return res.status(400).json({ message: "ID người dùng không hợp lệ." });
+        }
+
+        await Block.deleteOne({ blockedBy: userId, blockedUser: targetId });
+        const blockedMe = await Block.exists({ blockedBy: targetId, blockedUser: userId });
+        getIO().to(userId.toString()).emit("block_status_changed", { userId: targetId });
+        getIO().to(targetId).emit("block_status_changed", { userId: userId.toString() });
+        return res.status(200).json({ blockedByMe: false, blockedMe: !!blockedMe });
+    } catch (error) {
+        console.error("Lỗi khi bỏ chặn người dùng:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống." });
     }
 };

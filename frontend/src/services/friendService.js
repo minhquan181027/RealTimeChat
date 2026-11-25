@@ -23,4 +23,16 @@ export const friendService = {
     removeFriend: async (friendId) => {
         await api.delete(`/friend/${friendId}`);
     },
+    getBlockStatus: async (userId) => {
+        const res = await api.get(`/friend/block/${userId}`);
+        return res.data;
+    },
+    blockUser: async (userId) => {
+        const res = await api.post(`/friend/block/${userId}`);
+        return res.data;
+    },
+    unblockUser: async (userId) => {
+        const res = await api.delete(`/friend/block/${userId}`);
+        return res.data;
+    },
 };

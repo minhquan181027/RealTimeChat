@@ -1,9 +1,10 @@
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useLocation } from 'react-router'
 
 const ProtectedRoute = () => {
     const { accessToken, loading, refresh, fetchMe } = useAuthStore()
+    const location = useLocation()
     const [starting, setStarting] = useState(true)
 
     useEffect(() => {
@@ -19,7 +20,10 @@ const ProtectedRoute = () => {
 
                 // Nếu đã có token nhưng chưa có thông tin user
                 if (accessToken && !user) {
-                    await fetchMe()
+                    const fetchedUser = await fetchMe()
+                    if (!fetchedUser) {
+                        useAuthStore.getState().clearState()
+                    }
                 }
 
             } finally {
@@ -28,7 +32,7 @@ const ProtectedRoute = () => {
         }
 
         init()
-    }, [])
+    }, [fetchMe, refresh])
 
     if (starting || loading) {
         return (
@@ -40,6 +44,14 @@ const ProtectedRoute = () => {
 
     if (!accessToken) {
         return <Navigate to="/signin" replace />
+    }
+
+    const needsSetup = useAuthStore.getState().user?.needsSetup;
+    if (needsSetup && location.pathname !== "/setup") {
+        return <Navigate to="/setup" replace />
+    }
+    if (!needsSetup && location.pathname === "/setup") {
+        return <Navigate to="/" replace />
     }
 
     return <Outlet />

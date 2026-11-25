@@ -7,10 +7,11 @@ export const useFriendStore = create((set, get) => ({
     friends: [],
     received: [],
     sent: [],
+    blockStatuses: {},
     loading: false,
     friendsLoaded: false,
 
-    reset: () => set({ friends: [], received: [], sent: [], loading: false }),
+    reset: () => set({ friends: [], received: [], sent: [], blockStatuses: {}, loading: false, friendsLoaded: false }),
 
     fetchFriends: async () => {
         try {
@@ -85,4 +86,45 @@ export const useFriendStore = create((set, get) => ({
     // Dùng cho socket: người kia vừa xóa mình
     dropFriend: (friendId) =>
         set((s) => ({ friends: s.friends.filter((f) => f._id !== friendId) })),
+
+    fetchBlockStatus: async (userId) => {
+        try {
+            const status = await friendService.getBlockStatus(userId);
+            set((s) => ({ blockStatuses: { ...s.blockStatuses, [userId]: status } }));
+            return status;
+        } catch (error) {
+            console.error("Lỗi lấy trạng thái chặn:", error);
+            toast.error(error.response?.data?.message || i18n.t("toast.blockFailed"));
+            return null;
+        }
+    },
+
+    blockUser: async (userId) => {
+        try {
+            const status = await friendService.blockUser(userId);
+            set((s) => ({
+                blockStatuses: { ...s.blockStatuses, [userId]: status },
+                friends: s.friends.filter((friend) => friend._id?.toString() !== userId.toString()),
+                received: s.received.filter((request) => request.from?._id?.toString() !== userId.toString()),
+                sent: s.sent.filter((request) => request.to?._id?.toString() !== userId.toString()),
+            }));
+            toast.success(i18n.t("toast.blocked"));
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || i18n.t("toast.blockFailed"));
+            return false;
+        }
+    },
+
+    unblockUser: async (userId) => {
+        try {
+            const status = await friendService.unblockUser(userId);
+            set((s) => ({ blockStatuses: { ...s.blockStatuses, [userId]: status } }));
+            toast.success(i18n.t("toast.unblocked"));
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || i18n.t("toast.unblockFailed"));
+            return false;
+        }
+    },
 }));

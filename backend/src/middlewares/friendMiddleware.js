@@ -1,7 +1,15 @@
 import Conversation from "../models/Conversation.js";
 import Friend from "../models/Friend.js";
+import Block from "../models/Block.js";
 
 const pair = (a, b) => [a.toString(), b.toString()].sort();
+
+export const areUsersBlocked = async (userA, userB) => Boolean(await Block.exists({
+    $or: [
+        { blockedBy: userA, blockedUser: userB },
+        { blockedBy: userB, blockedUser: userA },
+    ],
+}));
 
 // Trả về Set các id KHÔNG phải bạn của `me`
 export const findNonFriendIds = async (me, ids) => {

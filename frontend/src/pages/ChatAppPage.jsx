@@ -22,6 +22,7 @@ const ChatAppPage = () => {
     const uploadingRef = useRef(false); // chặn double-click upload
     const [draftUser, setDraftUser] = useState(null); // người đang mở chat nháp
     const [view, setView] = useState("main"); // "main" | "pending" | "contacts"
+    const [leavePromptRequest, setLeavePromptRequest] = useState(0);
 
     const { conversations, messages, cursors, messageLoading, fetchMessages } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
@@ -32,6 +33,10 @@ const ChatAppPage = () => {
     const sentRequests = useFriendStore((s) => s.sent);
     const receivedRequests = useFriendStore((s) => s.received);
     const friendsLoaded = useFriendStore((s) => s.friendsLoaded);
+    const blockStatuses = useFriendStore((s) => s.blockStatuses);
+    const fetchBlockStatus = useFriendStore((s) => s.fetchBlockStatus);
+    const blockUser = useFriendStore((s) => s.blockUser);
+    const unblockUser = useFriendStore((s) => s.unblockUser);
 
     const [profileUser, setProfileUser] = useState(null);
     const socket = useSocketStore((s) => s.socket);
@@ -87,6 +92,7 @@ const ChatAppPage = () => {
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
                 isOnline: onlineUsers.includes(draftUser._id.toString()),
                 lastActiveAt: null,
+                otherUser: draftUser,
                 seenBy: [],
                 isGroup: false,
                 participants: [],
@@ -99,29 +105,32 @@ const ChatAppPage = () => {
         let isOnline = false;
         let lastActiveAt = null;
         let otherUserId = null;
+        let otherUser = null;
 
         if (activeConversation.type === "group") {
             name = activeConversation.group?.name || t("chatList.unnamedGroup");
             avatar = activeConversation.group?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
         } else {
-            const otherUser = activeConversation.participants.find((p) => {
+            const otherParticipant = activeConversation.participants.find((p) => {
                 const pId = p._id || p.userId?._id;
                 return pId?.toString() !== currentUser?._id?.toString();
             });
 
-            const otherUserInfo = otherUser?.userId || otherUser;
-            name = otherUserInfo?.displayName || t("chatList.hiddenUser");
-            avatar = otherUserInfo?.avatarUrl ||
+            const directUser = otherParticipant?.userId || otherParticipant;
+            name = directUser?.displayName || t("chatList.hiddenUser");
+            avatar = directUser?.avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 
-            otherUserId = otherUserInfo?._id?.toString();
+            otherUserId = directUser?._id?.toString();
+            otherUser = directUser;
             isOnline = onlineUsers.includes(otherUserId);
-            lastActiveAt = otherUserInfo?.lastActiveAt;
+            lastActiveAt = directUser?.lastActiveAt;
         }
 
         return {
             id: activeConversation._id, name, avatar, isOnline, lastActiveAt,
+            otherUser,
             seenBy: (activeConversation.seenBy || []).map((s) => s?._id?.toString() || s?.toString()),
             isGroup: activeConversation.type === "group",
             group: activeConversation.group,
@@ -130,6 +139,16 @@ const ChatAppPage = () => {
             otherUserId,
         };
     }, [activeConversation, draftUser, currentUser, onlineUsers]);
+
+    useEffect(() => {
+        if (activeChat?.otherUserId) {
+            fetchBlockStatus(activeChat.otherUserId);
+        }
+    }, [activeChat?.otherUserId, fetchBlockStatus]);
+
+    const directBlockStatus = activeChat?.otherUserId
+        ? blockStatuses[activeChat.otherUserId]
+        : undefined;
 
     // Quan hệ bạn bè với người đang chat (chỉ áp dụng chat 1-1)
     const friendInfo = useMemo(() => {
@@ -186,6 +205,7 @@ const ChatAppPage = () => {
 
     const handleSelect = useCallback((id) => {
         setDraftUser(null);
+        setLeavePromptRequest(0);
         setActiveId(id);
     }, []);
 
@@ -197,9 +217,11 @@ const ChatAppPage = () => {
         );
         if (existing) {
             setDraftUser(null);
+            setLeavePromptRequest(0);
             setView(existing.myStatus === "pending" ? "pending" : "main");
             setActiveId(existing._id);
         } else {
+            setLeavePromptRequest(0);
             setDraftUser(user);
             setView("main");
             setActiveId(null);
@@ -207,11 +229,13 @@ const ChatAppPage = () => {
     }, [conversations]);
 
     const handleBack = useCallback(() => {
+        setLeavePromptRequest(0);
         setActiveId(null);
         setDraftUser(null);
     }, []);
 
     const handleChangeView = useCallback((v) => {
+        setLeavePromptRequest(0);
         setView(v);
         setActiveId(null);
         setDraftUser(null);
@@ -219,6 +243,7 @@ const ChatAppPage = () => {
 
     const handleOpenConversation = useCallback((id) => {
         setDraftUser(null);
+        setLeavePromptRequest(0);
         setView("main");
         setActiveId(id);
     }, []);
@@ -239,7 +264,7 @@ const ChatAppPage = () => {
         handlePickUser(user); // mở chat cũ hoặc chat nháp
     }, [handlePickUser]);
 
-    const handleCallUser = useCallback((user) => {
+    const handleCallUser = useCallback(async (user) => {
         // Cuộc gọi dùng id cuộc trò chuyện 1-1 làm tên phòng
         const conv = conversations.find(
             (c) =>
@@ -251,6 +276,12 @@ const ChatAppPage = () => {
             return;
         }
         if (!socket || !currentUser) return;
+        const blockStatus = await useFriendStore.getState().fetchBlockStatus(user._id.toString());
+        if (!blockStatus) return;
+        if (blockStatus.blockedByMe || blockStatus.blockedMe) {
+            toast.error(blockStatus.blockedByMe ? t("chatWindow.blockedByMe") : t("chatWindow.blockedMe"));
+            return;
+        }
 
         socket.emit("call_user", {
             targetUserIds: [user._id],
@@ -287,6 +318,13 @@ const ChatAppPage = () => {
         if (ok) handleBack();
         return ok;
     }, [activeId, handleBack]);
+
+    const handleRequestLeaveGroup = useCallback((conversationId) => {
+        setDraftUser(null);
+        setView("main");
+        setActiveId(conversationId);
+        setLeavePromptRequest((request) => request + 1);
+    }, []);
 
     const handleRemoveGroupMember = useCallback(async (memberId) => {
         if (!activeId) return false;
@@ -431,6 +469,9 @@ const ChatAppPage = () => {
                             onSelect={handleSelect}
                             onPickUser={handlePickUser}
                             onOpenConversation={handleOpenConversation}
+                            onRequestLeaveGroup={handleRequestLeaveGroup}
+                            onBlockUser={blockUser}
+                            onUnblockUser={unblockUser}
                             view={view}
                             onChangeView={handleChangeView}
                             className={hasOpenChat ? "hidden md:flex" : "flex"}
@@ -449,8 +490,11 @@ const ChatAppPage = () => {
                             onAccept={handleAccept}
                             onDecline={handleDecline}
                             onLeaveGroup={handleLeaveGroup}
+                            leavePromptRequest={leavePromptRequest}
+                            onClearLeavePromptRequest={() => setLeavePromptRequest(0)}
                             onRemoveMember={handleRemoveGroupMember}
                             onSetDeputyAdmin={handleSetGroupDeputyAdmin}
+                            directBlockStatus={directBlockStatus}
                             onAvatarClick={handleAvatarClick}
                             onMemberClick={handleMemberClick}
                             friendStatus={friendInfo.status}

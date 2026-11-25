@@ -7,20 +7,24 @@ import ChatAppPage from './pages/ChatAppPage'
 import { Toaster } from 'sonner'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ForgotPass from './pages/ForgotPass'
+import SetupProfilePage from './pages/SetupProfilePage'
 import { useAuthStore } from './stores/useAuthStore'
 import { useSocketStore } from './stores/useSocketStore'
 import { useEffect } from 'react'
 
 function App() {
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
   const { connectSocket, disconnectSocket } = useSocketStore();
+  const userReady = Boolean(user && !user.needsSetup);
 
   useEffect(() => {
-    if (accessToken) {
+    if (accessToken && userReady) {
       connectSocket();
+    } else {
+      disconnectSocket();
     }
     return () => disconnectSocket();
-  }, [accessToken, connectSocket, disconnectSocket]);
+  }, [accessToken, userReady, connectSocket, disconnectSocket]);
   return (
     <div>
       <Toaster richColors />
@@ -33,6 +37,7 @@ function App() {
 
           {/* protected routes */}
           <Route element={<ProtectedRoute />}>
+            <Route path='/setup' element={<SetupProfilePage />} />
             <Route path='/' element={<ChatAppPage />} ></Route>
           </Route>
 

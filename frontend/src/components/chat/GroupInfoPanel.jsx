@@ -48,6 +48,8 @@ const GroupInfoPanel = ({
     onLeave,
     onRemoveMember,
     onSetDeputyAdmin,
+    leavePromptRequest = 0,
+    onLeavePromptCancel,
 }) => {
     const { t } = useTranslation();
     const currentUser = useAuthStore((s) => s.user);
@@ -76,10 +78,10 @@ const GroupInfoPanel = ({
     );
 
     // Ảnh mới nhất trước, bỏ ảnh đang tải lên
-    const photos = [...messages].reverse().filter((m) => m.imgURL && !m.pending);
+    const photos = [...messages].reverse().filter((m) => m.imgURL && !m.recalledAt && !m.pending);
     const shownPhotos = showAllPhotos ? photos : photos.slice(0, PHOTO_PREVIEW);
 
-    const [confirmLeave, setConfirmLeave] = useState(false);
+    const [confirmLeave, setConfirmLeave] = useState(leavePromptRequest > 0);
     const [leaving, setLeaving] = useState(false);
 
     const handleLeave = async () => {
@@ -306,7 +308,10 @@ const GroupInfoPanel = ({
                                         variant="secondary"
                                         className="flex-1"
                                         disabled={leaving}
-                                        onClick={() => setConfirmLeave(false)}
+                                        onClick={() => {
+                                            setConfirmLeave(false);
+                                            onLeavePromptCancel?.();
+                                        }}
                                     >
                                         {t("common.cancel")}
                                     </Button>

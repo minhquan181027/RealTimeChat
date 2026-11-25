@@ -50,9 +50,10 @@ export const useAuthStore = create((set, get) => ({
             useChatStore.getState().reset();
 
             get().setAccessToken(accessToken);
-            await useChatStore.getState().fetchConversations();
-
-            await get().fetchMe();
+            const user = await get().fetchMe();
+            if (user && !user.needsSetup) {
+                await useChatStore.getState().fetchConversations();
+            }
 
 
 
@@ -75,8 +76,10 @@ export const useAuthStore = create((set, get) => ({
 
             get().setAccessToken(accessToken);
 
-            await get().fetchMe();
-            await useChatStore.getState().fetchConversations();
+            const user = await get().fetchMe();
+            if (user && !user.needsSetup) {
+                await useChatStore.getState().fetchConversations();
+            }
             toast.success(i18n.t("toast.signInOk"))
         } catch (error) {
             console.error(error);
@@ -104,9 +107,11 @@ export const useAuthStore = create((set, get) => ({
     fetchMe: async () => {
         try {
             set({ loading: true });
-            const user = await authService.fetchMe();
-            set({ user });
+            const { user, needsSetup, requiresPassword } = await authService.fetchMe();
+            const currentUser = { ...user, needsSetup, requiresPassword };
+            set({ user: currentUser });
             if (user?.language) setLanguage(user.language);
+            return currentUser;
         } catch (error) {
             console.error(
                 "FetchMe error:",
@@ -115,8 +120,8 @@ export const useAuthStore = create((set, get) => ({
             );
 
             set({ user: null });
-
             toast.error(i18n.t("toast.fetchMeFail"));
+            return null;
         } finally {
             set({ loading: false });
         }
@@ -126,6 +131,13 @@ export const useAuthStore = create((set, get) => ({
         const user = await userService.updateMe(payload);
         set({ user });
         return user;
+    },
+
+    completeSetup: async (payload) => {
+        const user = await authService.completeSetup(payload);
+        const currentUser = { ...user, needsSetup: false, requiresPassword: false };
+        set({ user: currentUser });
+        return currentUser;
     },
 
     refresh: async () => {

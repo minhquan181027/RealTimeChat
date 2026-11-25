@@ -5,6 +5,35 @@
         "delete": "Delete",
         "notSet": "Not set"
     },
+    "setup": {
+        "title": "Complete your account",
+        "description": "Update your information before you start using RealTimeChat.",
+        "avatar": "Profile picture",
+        "chooseAvatar": "Choose image",
+        "uploadingAvatar": "Uploading image...",
+        "avatarImageOnly": "Please choose an image file.",
+        "avatarUploadFailed": "Could not upload profile picture.",
+        "displayName": "Display name",
+        "nameRequired": "Please enter a display name.",
+        "nameMax": "Display name must be 50 characters or fewer.",
+        "username": "Username",
+        "usernameRequired": "Please enter a username.",
+        "usernameFormat": "Use 3-30 letters, numbers, dots, or underscores.",
+        "bio": "About you",
+        "bioMax": "About you must be 500 characters or fewer.",
+        "gender": "Gender",
+        "genderOptional": "Choose gender (optional)",
+        "dateOfBirth": "Date of birth",
+        "password": "Create password",
+        "passwordRequired": "Please create a password.",
+        "passwordMin": "Password must be at least 6 characters.",
+        "confirmPassword": "Confirm password",
+        "passwordMismatch": "Passwords do not match.",
+        "continue": "Save and continue",
+        "saving": "Saving...",
+        "saveError": "Could not save your information. Please try again.",
+        "signOut": "Sign out"
+    },
     "gender": {
         "male": "Male",
         "female": "Female",
@@ -60,6 +89,17 @@
         "deputyRemoved": "Deputy admin role removed",
         "deputyUpdateFailed": "Could not update deputy admin",
         "deputyWillPromote": "{{name}} will become the new admin when you leave"
+    },
+    "directInfo": {
+        "title": "Chat info",
+        "close": "Close",
+        "profile": "View profile",
+        "block": "Block user",
+        "unblock": "Unblock",
+        "blockTitle": "Block this user?",
+        "blockConfirm": "You won't be able to message or call {{name}}. You will also be unfriended.",
+        "blocking": "Blocking...",
+        "loadingStatus": "Loading block status..."
     },
     "typing": {
         "one": "Typing...",
@@ -154,6 +194,8 @@
         "friendNone": "Send a friend request to this person",
         "friendSent": "Friend request sent, waiting for a reply",
         "friendReceived": "{{name}} sent you a friend request",
+        "blockedByMe": "You blocked this user. Unblock them to continue chatting.",
+        "blockedMe": "You can't chat because this user blocked you.",
         "sendFriend": "Add friend",
         "pendingGroup": "You were added to this group. Accept to join or delete it.",
         "pendingDirect": "{{name}} is not your friend yet. Reply or accept to move this to your main chats.",
@@ -176,7 +218,9 @@
     },
     "header": {
         "members": "{{n}} members",
-        "addMember": "Add members"
+        "addMember": "Add members",
+        "moreOptions": "More options",
+        "startVideoCall": "Start video call"
     },
     "system": {
         "membersAdded": "{{actor}} added {{targets}} to the group",
@@ -272,6 +316,10 @@
         "actionFailed": "Action failed",
         "removed": "Removed from friends",
         "removeFailed": "Could not remove friend",
-        "callFirst": "Send this person a message before calling"
+        "callFirst": "Send this person a message before calling",
+        "blocked": "User blocked",
+        "blockFailed": "Could not block user",
+        "unblocked": "User unblocked",
+        "unblockFailed": "Could not unblock user"
     }
 }

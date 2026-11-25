@@ -124,7 +124,9 @@ export const useChatStore = create(
                         messages: {
                             ...s.messages,
                             [conversationId]: (s.messages[conversationId] || []).map((m) =>
-                                m._id?.toString() === messageId ? { ...m, recalledAt } : m
+                                m._id?.toString() === messageId
+                                    ? { ...m, recalledAt, imgURL: undefined, gifProvider: undefined, gifId: undefined }
+                                    : m
                             ),
                         },
                     };
@@ -132,7 +134,12 @@ export const useChatStore = create(
             },
             recallMessage: async (messageId) => {
                 try {
-                    await chatService.recallMessage(messageId);
+                    const message = await chatService.recallMessage(messageId);
+                    get().applyRecall({
+                        conversationId: message.conversationId.toString(),
+                        messageId: message._id.toString(),
+                        recalledAt: message.recalledAt,
+                    });
                     return true;
                 } catch (error) {
                     toast.error(error.response?.data?.message || i18n.t("chatWindow.recallFailed"));

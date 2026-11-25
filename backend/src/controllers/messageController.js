@@ -1,5 +1,5 @@
 import Conversation from "../models/Conversation.js";
-import { findNonFriendIds } from "../middlewares/friendMiddleware.js";
+import { areUsersBlocked, findNonFriendIds } from "../middlewares/friendMiddleware.js";
 import Message from "../models/Message.js";
 import cloudinary from 'cloudinary';
 import multer from 'multer';
@@ -88,12 +88,23 @@ export const sendDirectMessage = async (req, res) => {
             if (!isMember) {
                 return res.status(403).json({ message: "Bạn không thuộc cuộc trò chuyện này" });
             }
+            if (conversation.type === "direct") {
+                const otherParticipant = conversation.participants.find(
+                    (participant) => participant.userId.toString() !== senderId.toString()
+                );
+                if (otherParticipant && await areUsersBlocked(senderId, otherParticipant.userId)) {
+                    return res.status(403).json({ message: "Không thể gửi tin nhắn cho người dùng này." });
+                }
+            }
         } else {
             if (!recipientId) {
                 return res.status(400).json({ message: "Thiếu recipientId" });
             }
             if (recipientId.toString() === senderId.toString()) {
                 return res.status(400).json({ message: "Không thể nhắn tin cho chính mình" });
+            }
+            if (await areUsersBlocked(senderId, recipientId)) {
+                return res.status(403).json({ message: "Không thể gửi tin nhắn cho người dùng này." });
             }
 
             conversation = await Conversation.findOne({
@@ -245,10 +256,25 @@ export const recallMessage = async (req, res) => {
         if (message.senderId.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Bạn không thể thu hồi tin nhắn này" });
         }
-        if (message.recalledAt) return res.status(200).json({ message });
+        if (message.recalledAt) {
+            if (message.imgURL || message.gifProvider || message.gifId) {
+                message.set({
+                    imgURL: undefined,
+                    gifProvider: undefined,
+                    gifId: undefined,
+                });
+                await message.save();
+            }
+            return res.status(200).json({ message });
+        }
 
         message.recalledAt = new Date();
         message.recalledBy = req.user._id;
+        message.set({
+            imgURL: undefined,
+            gifProvider: undefined,
+            gifId: undefined,
+        });
         await message.save();
 
         const conversation = await Conversation.findById(message.conversationId);

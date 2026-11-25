@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true,
     },
+    onboardingCompleted: {
+        type: Boolean,
+        default: true,
+    },
 
     displayName: {
         type: String,

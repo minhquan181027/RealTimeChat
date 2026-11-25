@@ -93,6 +93,9 @@ export const useSocketStore = create((set, get) => ({
         socket.on("friend_request_new", () => {
             useFriendStore.getState().fetchRequests();
         });
+        socket.on("friend_requests_updated", () => {
+            useFriendStore.getState().fetchRequests();
+        });
 
         socket.on("friend_accepted", () => {
             useFriendStore.getState().fetchFriends();
@@ -101,6 +104,9 @@ export const useSocketStore = create((set, get) => ({
 
         socket.on("friend_removed", ({ userId }) => {
             useFriendStore.getState().dropFriend(userId);
+        });
+        socket.on("block_status_changed", ({ userId }) => {
+            useFriendStore.getState().fetchBlockStatus(userId);
         });
 
         socket.on("conversation_new", () => {

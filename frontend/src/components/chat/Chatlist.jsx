@@ -10,8 +10,20 @@ import { formatTime } from "@/utils/date";
 import { systemText } from "@/utils/systemMessage";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
+import ConversationActionsMenu from "./ConversationActionsMenu";
 
-const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "main", onChangeView, className }) => {
+const ChatList = ({
+    activeId,
+    onSelect,
+    onPickUser,
+    onOpenConversation,
+    onRequestLeaveGroup,
+    onBlockUser,
+    onUnblockUser,
+    view = "main",
+    onChangeView,
+    className,
+}) => {
     const { t } = useTranslation();
     const { conversations, typing } = useChatStore();
     const currentUser = useAuthStore((state) => state.user);
@@ -89,6 +101,7 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
         return {
             name,
             avatar,
+            otherUserId,
             lastMessageText,
             hasUnread: unreadCount > 0,
             unreadCount,
@@ -116,67 +129,81 @@ const ChatList = ({ activeId, onSelect, onPickUser, onOpenConversation, view = "
                     </div>
                 ) : (
                     visible.map((c) => {
-                        const { name, avatar, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time, isTyping } =
+                        const { name, avatar, otherUserId, lastMessageText, hasUnread, unreadCount, isMuted, isOnline, time, isTyping } =
                             getConversationInfo(c);
 
                         return (
-                            <button
+                            <div
                                 key={c._id}
-                                onClick={() => onSelect(c._id)}
                                 className={cn(
-                                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60",
+                                    "group flex w-full items-center gap-1 px-2 py-2 transition-colors hover:bg-muted/60",
                                     activeId === c._id && "bg-blue-50 md:bg-primary/10"
                                 )}
                             >
-                                <div className="relative size-12 shrink-0">
-                                    <img src={avatar} alt={name} className="size-full rounded-full object-cover" />
-                                    {c.type === "direct" && isOnline && (
-                                        <StatusBadge status="online" className="absolute bottom-0 right-0" />
-                                    )}
-                                </div>
-
-                                <div className="min-w-0 flex-1 border-b pb-3 md:border-none md:pb-0">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <h3 className={cn("truncate text-[15px]", hasUnread ? "font-semibold" : "font-medium")}>
-                                            {name}
-                                        </h3>
-                                        <span
-                                            className={cn(
-                                                "flex shrink-0 items-center gap-1 text-xs",
-                                                hasUnread ? "font-medium text-primary" : "text-muted-foreground"
-                                            )}
-                                        >
-                                            {isMuted && <BellOff className="size-3.5" />}
-                                            {time}
-                                        </span>
-                                    </div>
-                                    <div className="mt-0.5 flex items-center justify-between gap-2">
-                                        <p
-                                            className={cn(
-                                                "truncate text-sm",
-                                                hasUnread ? "font-medium text-foreground" : "text-muted-foreground"
-                                            )}
-                                        >
-                                            {isTyping ? (
-                                                <span className="italic text-primary">{t("typing.one")}</span>
-                                            ) : (
-                                                lastMessageText
-                                            )}
-                                        </p>
-
-                                        {hasUnread && (
-                                            <span
-                                                className={cn(
-                                                    "flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white",
-                                                    isMuted ? "bg-muted-foreground" : "bg-red-500"
-                                                )}
-                                            >
-                                                {unreadCount > 99 ? "99+" : unreadCount}
-                                            </span>
+                                <button
+                                    type="button"
+                                    onClick={() => onSelect(c._id)}
+                                    className="flex min-w-0 flex-1 items-center gap-3 px-2 py-1 text-left"
+                                >
+                                    <div className="relative size-12 shrink-0">
+                                        <img src={avatar} alt={name} className="size-full rounded-full object-cover" />
+                                        {c.type === "direct" && isOnline && (
+                                            <StatusBadge status="online" className="absolute bottom-0 right-0" />
                                         )}
                                     </div>
-                                </div>
-                            </button>
+
+                                    <div className="min-w-0 flex-1 border-b pb-3 md:border-none md:pb-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h3 className={cn("truncate text-[15px]", hasUnread ? "font-semibold" : "font-medium")}>
+                                                {name}
+                                            </h3>
+                                            <span
+                                                className={cn(
+                                                    "flex w-16 shrink-0 items-center justify-end gap-1 whitespace-nowrap text-right text-xs",
+                                                    hasUnread ? "font-medium text-primary" : "text-muted-foreground"
+                                                )}
+                                            >
+                                                {isMuted && <BellOff className="size-3.5" />}
+                                                {time}
+                                            </span>
+                                        </div>
+                                        <div className="mt-0.5 flex items-center justify-between gap-2">
+                                            <p
+                                                className={cn(
+                                                    "truncate text-sm",
+                                                    hasUnread ? "font-medium text-foreground" : "text-muted-foreground"
+                                                )}
+                                            >
+                                                {isTyping ? (
+                                                    <span className="italic text-primary">{t("typing.one")}</span>
+                                                ) : (
+                                                    lastMessageText
+                                                )}
+                                            </p>
+
+                                            {hasUnread && (
+                                                <span
+                                                    className={cn(
+                                                        "flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white",
+                                                        isMuted ? "bg-muted-foreground" : "bg-red-500"
+                                                    )}
+                                                >
+                                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </button>
+                                <ConversationActionsMenu
+                                    conversation={c}
+                                    name={name}
+                                    avatar={avatar}
+                                    otherUserId={c.type === "direct" ? otherUserId : null}
+                                    onRequestLeaveGroup={onRequestLeaveGroup}
+                                    onBlockUser={onBlockUser}
+                                    onUnblockUser={onUnblockUser}
+                                />
+                            </div>
                         );
                     })
                 )}

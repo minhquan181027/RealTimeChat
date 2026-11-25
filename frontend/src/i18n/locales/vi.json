@@ -5,6 +5,35 @@
         "delete": "Xóa",
         "notSet": "Chưa cập nhật"
     },
+    "setup": {
+        "title": "Hoàn thiện tài khoản",
+        "description": "Hãy cập nhật thông tin trước khi bắt đầu sử dụng RealTimeChat.",
+        "avatar": "Ảnh đại diện",
+        "chooseAvatar": "Chọn ảnh",
+        "uploadingAvatar": "Đang tải ảnh...",
+        "avatarImageOnly": "Vui lòng chọn một tệp hình ảnh.",
+        "avatarUploadFailed": "Không tải được ảnh đại diện.",
+        "displayName": "Tên hiển thị",
+        "nameRequired": "Vui lòng nhập tên hiển thị.",
+        "nameMax": "Tên hiển thị tối đa 50 ký tự.",
+        "username": "Tên đăng nhập",
+        "usernameRequired": "Vui lòng nhập tên đăng nhập.",
+        "usernameFormat": "Tên đăng nhập cần 3-30 ký tự, chỉ gồm chữ, số, dấu chấm hoặc gạch dưới.",
+        "bio": "Giới thiệu",
+        "bioMax": "Giới thiệu tối đa 500 ký tự.",
+        "gender": "Giới tính",
+        "genderOptional": "Chọn giới tính (không bắt buộc)",
+        "dateOfBirth": "Ngày sinh",
+        "password": "Tạo mật khẩu",
+        "passwordRequired": "Vui lòng tạo mật khẩu.",
+        "passwordMin": "Mật khẩu phải có ít nhất 6 ký tự.",
+        "confirmPassword": "Xác nhận mật khẩu",
+        "passwordMismatch": "Mật khẩu xác nhận không khớp.",
+        "continue": "Lưu và bắt đầu",
+        "saving": "Đang lưu...",
+        "saveError": "Không thể lưu thông tin. Vui lòng thử lại.",
+        "signOut": "Đăng xuất"
+    },
     "gender": {
         "male": "Nam",
         "female": "Nữ",
@@ -60,6 +89,17 @@
         "deputyRemoved": "Đã gỡ quyền phó quản trị viên",
         "deputyUpdateFailed": "Không cập nhật được phó quản trị viên",
         "deputyWillPromote": "{{name}} sẽ trở thành quản trị viên mới khi bạn rời nhóm"
+    },
+    "directInfo": {
+        "title": "Thông tin đoạn chat",
+        "close": "Đóng",
+        "profile": "Trang cá nhân",
+        "block": "Chặn người dùng",
+        "unblock": "Bỏ chặn",
+        "blockTitle": "Chặn người dùng này?",
+        "blockConfirm": "Bạn sẽ không thể nhắn tin hoặc gọi cho {{name}}. Hai người cũng sẽ bị hủy kết bạn.",
+        "blocking": "Đang chặn...",
+        "loadingStatus": "Đang tải trạng thái chặn..."
     },
     "typing": {
         "one": "Đang soạn tin...",
@@ -154,6 +194,8 @@
         "friendNone": "Gửi yêu cầu kết bạn tới người này",
         "friendSent": "Bạn đã gửi lời mời kết bạn, đang chờ phản hồi",
         "friendReceived": "{{name}} đã gửi lời mời kết bạn cho bạn",
+        "blockedByMe": "Bạn đã chặn người dùng này. Bỏ chặn để tiếp tục trò chuyện.",
+        "blockedMe": "Bạn không thể trò chuyện vì người này đã chặn bạn.",
         "sendFriend": "Gửi kết bạn",
         "pendingGroup": "Bạn được thêm vào nhóm này. Chấp nhận để tham gia hoặc xóa.",
         "pendingDirect": "{{name}} chưa là bạn của bạn. Trả lời hoặc chấp nhận để chuyển vào đoạn chat chính.",
@@ -176,7 +218,9 @@
     },
     "header": {
         "members": "{{n}} thành viên",
-        "addMember": "Thêm thành viên"
+        "addMember": "Thêm thành viên",
+        "moreOptions": "Tùy chọn khác",
+        "startVideoCall": "Gọi video"
     },
     "system": {
         "membersAdded": "{{targets}} được {{actor}} thêm vào nhóm",
@@ -272,6 +316,10 @@
         "actionFailed": "Thao tác thất bại",
         "removed": "Đã xóa khỏi danh sách bạn bè",
         "removeFailed": "Không xóa được bạn bè",
-        "callFirst": "Hãy nhắn tin cho người này trước khi gọi"
+        "callFirst": "Hãy nhắn tin cho người này trước khi gọi",
+        "blocked": "Đã chặn người dùng",
+        "blockFailed": "Không chặn được người dùng",
+        "unblocked": "Đã bỏ chặn người dùng",
+        "unblockFailed": "Không bỏ chặn được người dùng"
     }
 }

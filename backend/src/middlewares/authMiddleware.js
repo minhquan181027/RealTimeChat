@@ -17,16 +17,19 @@ export const protectedRoute = async (req, res, next) => {
             process.env.ACCESS_TOKEN_SECRET
         );
 
-        const user = await User.findById(decodedUser.userId)
-            .select("-hashedPassword");
+        const userDocument = await User.findById(decodedUser.userId)
+            .select("+hashedPassword");
 
-        if (!user) {
+        if (!userDocument) {
             return res.status(401).json({
                 message: "Người dùng không tồn tại"
             });
         }
 
-        req.user = user;
+        req.needsSetup = !userDocument.onboardingCompleted || !userDocument.hashedPassword;
+        req.requiresPassword = !userDocument.hashedPassword;
+        req.user = userDocument.toObject();
+        delete req.user.hashedPassword;
         next();
 
     } catch (error) {
@@ -46,4 +49,15 @@ export const protectedRoute = async (req, res, next) => {
             message: "Lỗi máy chủ"
         });
     }
+};
+
+export const requireSetupComplete = (req, res, next) => {
+    const isProfileImageUpload = req.method === "POST" && req.path === "/api/message/upload";
+    if (req.needsSetup && !isProfileImageUpload) {
+        return res.status(403).json({
+            code: "SETUP_REQUIRED",
+            message: "Vui lòng hoàn tất thiết lập tài khoản trước khi tiếp tục."
+        });
+    }
+    next();
 };

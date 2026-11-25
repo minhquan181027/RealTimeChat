@@ -37,7 +37,8 @@ export const signUp = async (req, res) => {
             username,
             hashedPassword,
             email,
-            displayName: `${lastName} ${firstName}`
+            displayName: `${lastName} ${firstName}`,
+            onboardingCompleted: false,
 
         });
         return res.sendStatus(204);
@@ -151,8 +152,8 @@ export const googleLogin = async (req, res) => {
                 email: email,
                 googleId: googleId,
                 displayName: displayName,
-                // Không cần hashedPassword vì đăng nhập bằng Google
-                // googleId: googleId, // (Khuyên dùng) Bạn nên thêm field này vào Schema User
+                avatarUrl: payload.picture,
+                onboardingCompleted: false,
             });
         }
 

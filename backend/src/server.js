@@ -9,7 +9,7 @@ import messageRoute from './routes/messageRoute.js';
 import conversationRoute from './routes/conversationRoute.js';
 import livekitRoute from './routes/livekitRoute.js';
 import cookieParser from 'cookie-parser';
-import { protectedRoute } from './middlewares/authMiddleware.js';
+import { protectedRoute, requireSetupComplete } from './middlewares/authMiddleware.js';
 import cors from 'cors';
 
 import { createServer } from 'http';
@@ -39,6 +39,7 @@ app.use('/api/auth', authRoute);
 // private routes
 app.use(protectedRoute);
 app.use('/api/user', userRoute);
+app.use(requireSetupComplete);
 app.use('/api/friend', friendRoute);
 app.use('/api/message', messageRoute);
 app.use('/api/conversation', conversationRoute);

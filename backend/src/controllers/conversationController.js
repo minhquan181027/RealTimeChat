@@ -3,12 +3,13 @@ import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import { getIO, invalidateMembers } from "../socket/index.js";
-import { findNonFriendIds } from "../middlewares/friendMiddleware.js";
+import { areUsersBlocked, findNonFriendIds } from "../middlewares/friendMiddleware.js";
 
 const USER_FIELDS = "_id displayName avatarUrl lastActiveAt";
+const PARTICIPANT_FIELDS = `${USER_FIELDS} username`;
 
 const populateOptions = [
-    { path: "participants.userId", select: USER_FIELDS },
+    { path: "participants.userId", select: PARTICIPANT_FIELDS },
     { path: "seenBy", select: USER_FIELDS },
     { path: "lastMessage.senderId", select: USER_FIELDS },
 ];
@@ -32,6 +33,7 @@ const formatConversation = (conversation, userId) => {
             _id: p.userId?._id,
             displayName: p.userId?.displayName,
             avatarUrl: p.userId?.avatarUrl,
+            username: p.userId?.username,
             lastActiveAt: p.userId?.lastActiveAt,
             joinAt: p.joinAt,
             status: p.status || "accepted",
@@ -76,6 +78,9 @@ export const createConversation = async (req, res) => {
                 return res.status(400).json({ message: "Cuộc trò chuyện trực tiếp chỉ có 2 người" });
             }
             const otherId = otherIds[0];
+            if (await areUsersBlocked(userId, otherId)) {
+                return res.status(403).json({ message: "Không thể tạo cuộc trò chuyện với người dùng này." });
+            }
 
             // Nếu đã có cuộc trò chuyện direct giữa 2 người thì trả về luôn
             conversation = await Conversation.findOne({
@@ -208,6 +213,21 @@ export const getMessages = async (req, res) => {
             .populate("senderId", "displayName avatarUrl")
             .lean();
 
+        const recalledMedia = messages.filter(
+            (message) => message.recalledAt && (message.imgURL || message.gifProvider || message.gifId)
+        );
+        if (recalledMedia.length) {
+            await Message.updateMany(
+                { _id: { $in: recalledMedia.map((message) => message._id) } },
+                { $unset: { imgURL: 1, gifProvider: 1, gifId: 1 } }
+            );
+            recalledMedia.forEach((message) => {
+                delete message.imgURL;
+                delete message.gifProvider;
+                delete message.gifId;
+            });
+        }
+
         let nextCursor = null;
         if (messages.length > pageSize) {
             messages = messages.slice(0, pageSize);
@@ -283,6 +303,21 @@ const setMyStatus = async (req, res, status) => {
 
         if (!mongoose.isValidObjectId(conversationId)) {
             return res.status(400).json({ message: "conversationId không hợp lệ" });
+        }
+
+        if (status === "accepted") {
+            const existing = await Conversation.findById(conversationId).select("type participants").lean();
+            if (existing?.type === "direct") {
+                const mine = existing.participants.find(
+                    (participant) => participant.userId.toString() === userId.toString()
+                );
+                const other = existing.participants.find(
+                    (participant) => participant.userId.toString() !== userId.toString()
+                );
+                if (mine?.status === "pending" && other && await areUsersBlocked(userId, other.userId)) {
+                    return res.status(403).json({ message: "Không thể chấp nhận cuộc trò chuyện với người dùng này." });
+                }
+            }
         }
 
         // Chỉ chuyển được khi đang pending

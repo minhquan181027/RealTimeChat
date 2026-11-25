@@ -7,6 +7,7 @@ import ChatInput from "./ChatInput";
 import ChatWindowHeader from "./ChatWindowHeader";
 import MessageItem from "./MessageItem";
 import GroupInfoPanel from "./GroupInfoPanel";
+import DirectInfoPanel from "./DirectInfoPanel";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useChatStore } from "@/stores/useChatStore";
@@ -20,7 +21,7 @@ const ChatWindow = ({
     onSendGif,
     sending, uploading, onLoadMore, hasMore, loading,
     friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onMemberClick, onLeaveGroup, onRemoveMember,
-    onSetDeputyAdmin, className,
+    onSetDeputyAdmin, directBlockStatus, leavePromptRequest = 0, onClearLeavePromptRequest, className,
 }) => {
     const { t } = useTranslation();
 
@@ -150,7 +151,13 @@ const ChatWindow = ({
         );
     }
 
-    const inputDisabled = !!(sending || uploading);
+    const isDirectBlocked = Boolean(directBlockStatus?.blockedByMe || directBlockStatus?.blockedMe);
+    const inputDisabled = !!(sending || uploading || isDirectBlocked);
+    const showGroupInfo = infoOpen || leavePromptRequest > 0;
+    const closeGroupInfo = () => {
+        setInfoOpen(false);
+        if (leavePromptRequest > 0) onClearLeavePromptRequest?.();
+    };
 
     return (
         <div className={cn("relative min-w-0 flex-1 flex-row bg-muted/40", className)}>
@@ -161,9 +168,10 @@ const ChatWindow = ({
                     onBack={onBack}
                     infoOpen={infoOpen}
                     onToggleInfo={() => setInfoOpen((v) => !v)}
+                    directBlockStatus={directBlockStatus}
                 />
 
-                {(friendStatus === "none" || friendStatus === "sent" || friendStatus === "received") && (
+                {!isDirectBlocked && (friendStatus === "none" || friendStatus === "sent" || friendStatus === "received") && (
                     <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2.5">
                         <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                             <UserPlus className="size-4 shrink-0" />
@@ -298,7 +306,7 @@ const ChatWindow = ({
                 </div>
 
                 {/* Banner cho cuộc trò chuyện đang chờ */}
-                {chat.myStatus === "pending" && (
+                {chat.myStatus === "pending" && !isDirectBlocked && (
                     <div className="flex items-center justify-between gap-3 border-t bg-background px-4 py-3">
                         <p className="text-sm text-muted-foreground">
                             {chat.isGroup
@@ -322,21 +330,42 @@ const ChatWindow = ({
                     </div>
                 )}
 
+                {isDirectBlocked && (
+                    <div className="border-t bg-muted/50 px-4 py-3 text-center text-sm text-muted-foreground">
+                        {directBlockStatus?.blockedByMe ? t("chatWindow.blockedByMe") : t("chatWindow.blockedMe")}
+                    </div>
+                )}
+
                 <ChatInput onSend={onSend} onSendGif={handleGifSelect} onUpload={onUpload} onTyping={onTyping} disabled={inputDisabled} />
             </div>
 
             {/* Panel thông tin nhóm */}
-            {chat.isGroup && infoOpen && (
+            {chat.isGroup && showGroupInfo && (
                 <GroupInfoPanel
+                    key={leavePromptRequest}
                     chat={chat}
                     messages={messages}
-                    onClose={() => setInfoOpen(false)}
+                    onClose={closeGroupInfo}
                     onMemberClick={onMemberClick}
                     onImageClick={setSelectedImage}
                     onLeave={onLeaveGroup}
                     onRemoveMember={onRemoveMember}
                     onSetDeputyAdmin={onSetDeputyAdmin}
+                    leavePromptRequest={leavePromptRequest}
+                    onLeavePromptCancel={() => {
+                        setInfoOpen(true);
+                        onClearLeavePromptRequest?.();
+                    }}
+                />
+            )}
 
+            {!chat.isGroup && infoOpen && (
+                <DirectInfoPanel
+                    chat={chat}
+                    messages={messages}
+                    onClose={() => setInfoOpen(false)}
+                    onProfileClick={onMemberClick}
+                    onImageClick={setSelectedImage}
                 />
             )}
 

@@ -12,12 +12,17 @@ export const socketAuthMiddleWare = async (socket, next) => {
             return next(new Error("Unauthorized - Token không hợp lệ"));
         }
 
-        const user = await User.findById(decoded.userId).select('-hashedPassword');
+        const user = await User.findById(decoded.userId).select('+hashedPassword');
 
         if (!user) {
             return next(new Error("User không tồn tại"));
         }
-        socket.user = user;
+        if (!user.onboardingCompleted || !user.hashedPassword) {
+            return next(new Error("Vui lòng hoàn tất thiết lập tài khoản trước khi kết nối."));
+        }
+        const safeUser = user.toObject();
+        delete safeUser.hashedPassword;
+        socket.user = safeUser;
         next();
     } catch (error) {
         console.error("Lỗi khi verify JWT trong socketMiddleWare", error);

@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Friend from "../models/Friend.js";
 import FriendRequest from "../models/FriendRequest.js";
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -10,14 +11,95 @@ export const authMe = async (req, res) => {
         const user = req.user;
 
         return res.status(200).json({
-            user
-        })
+            user,
+            needsSetup: req.needsSetup,
+            requiresPassword: req.requiresPassword,
+        });
 
     } catch (error) {
         console.error('Lỗi khi gọi authMe', error);
         return res.status(500).json({ message: 'Lỗi hệ thống' });
     }
 }
+
+export const completeProfileSetup = async (req, res) => {
+    try {
+        if (!req.needsSetup) {
+            return res.status(409).json({ message: "Tài khoản đã hoàn tất thiết lập." });
+        }
+
+        const { username, displayName, bio, gender, dateOfBirth, password, avatarUrl } = req.body;
+        const bad = (message, field) => res.status(400).json({ message, field });
+        const normalizedUsername = typeof username === "string" ? username.trim().toLowerCase() : "";
+        const normalizedName = typeof displayName === "string" ? displayName.trim() : "";
+
+        if (!/^[a-z0-9._]{3,30}$/.test(normalizedUsername)) {
+            return bad("Tên đăng nhập phải có 3-30 ký tự (chữ, số, dấu chấm hoặc gạch dưới).", "username");
+        }
+        if (!normalizedName || normalizedName.length > 50) {
+            return bad("Tên hiển thị phải từ 1 đến 50 ký tự.", "displayName");
+        }
+        if (typeof bio === "string" && bio.trim().length > 500) {
+            return bad("Giới thiệu tối đa 500 ký tự.", "bio");
+        }
+        if (gender && !["male", "female", "other"].includes(gender)) {
+            return bad("Giới tính không hợp lệ.", "gender");
+        }
+        if (avatarUrl !== undefined && avatarUrl !== "" &&
+            (typeof avatarUrl !== "string" || !avatarUrl.startsWith("https://"))) {
+            return bad("Ảnh đại diện không hợp lệ.", "avatarUrl");
+        }
+
+        let parsedDate;
+        if (dateOfBirth) {
+            parsedDate = new Date(dateOfBirth);
+            if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+                return bad("Ngày sinh không hợp lệ.", "dateOfBirth");
+            }
+        }
+
+        const user = await User.findById(req.user._id).select("+hashedPassword");
+        if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng." });
+
+        if (!user.hashedPassword && (typeof password !== "string" || password.length < 6)) {
+            return bad("Mật khẩu phải có ít nhất 6 ký tự.", "password");
+        }
+
+        const duplicateUsername = await User.findOne({
+            username: normalizedUsername,
+            _id: { $ne: user._id },
+        });
+        if (duplicateUsername) {
+            return res.status(409).json({
+                field: "username",
+                message: "Tên đăng nhập đã được sử dụng.",
+            });
+        }
+
+        user.username = normalizedUsername;
+        user.displayName = normalizedName;
+        user.bio = typeof bio === "string" ? bio.trim() : "";
+        user.gender = gender || undefined;
+        user.dateOfBirth = parsedDate;
+        if (avatarUrl) user.avatarUrl = avatarUrl;
+        if (!user.hashedPassword) user.hashedPassword = await bcrypt.hash(password, 10);
+        user.onboardingCompleted = true;
+        await user.save();
+
+        const safeUser = user.toObject();
+        delete safeUser.hashedPassword;
+        return res.status(200).json({ user: safeUser });
+    } catch (error) {
+        if (error.code === 11000 && error.keyPattern?.username) {
+            return res.status(409).json({
+                field: "username",
+                message: "Tên đăng nhập đã được sử dụng.",
+            });
+        }
+        console.error("Lỗi completeProfileSetup:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống." });
+    }
+};
 
 export const searchUsers = async (req, res) => {
     try {
@@ -86,7 +168,7 @@ export const getUserProfile = async (req, res) => {
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({ message: "id không hợp lệ" });
         }
-        const user = await User.findById(id).select("_id displayName avatarUrl bio gender dateOfBirth").lean();
+        const user = await User.findById(id).select("_id username displayName avatarUrl bio gender dateOfBirth").lean();
         if (!user) return res.status(404).json({ message: "Người dùng không tồn tại" });
         return res.status(200).json({ user });
     } catch (error) {

@@ -5,6 +5,35 @@
         "delete": "削除",
         "notSet": "未設定"
     },
+    "setup": {
+        "title": "アカウントを設定",
+        "description": "RealTimeChatを始める前に、プロフィールを設定してください。",
+        "avatar": "プロフィール画像",
+        "chooseAvatar": "画像を選択",
+        "uploadingAvatar": "画像をアップロード中...",
+        "avatarImageOnly": "画像ファイルを選択してください。",
+        "avatarUploadFailed": "プロフィール画像をアップロードできませんでした。",
+        "displayName": "表示名",
+        "nameRequired": "表示名を入力してください。",
+        "nameMax": "表示名は50文字以内で入力してください。",
+        "username": "ユーザー名",
+        "usernameRequired": "ユーザー名を入力してください。",
+        "usernameFormat": "ユーザー名は3～30文字で、英数字、ピリオド、アンダースコアを使用できます。",
+        "bio": "自己紹介",
+        "bioMax": "自己紹介は500文字以内で入力してください。",
+        "gender": "性別",
+        "genderOptional": "性別を選択（任意）",
+        "dateOfBirth": "生年月日",
+        "password": "パスワードを作成",
+        "passwordRequired": "パスワードを作成してください。",
+        "passwordMin": "パスワードは6文字以上で入力してください。",
+        "confirmPassword": "パスワードを確認",
+        "passwordMismatch": "パスワードが一致しません。",
+        "continue": "保存して開始",
+        "saving": "保存中...",
+        "saveError": "情報を保存できませんでした。もう一度お試しください。",
+        "signOut": "ログアウト"
+    },
     "gender": {
         "male": "男性",
         "female": "女性",
@@ -45,6 +74,17 @@
         "deputyRemoved": "副管理者を解除しました",
         "deputyUpdateFailed": "副管理者を更新できませんでした",
         "deputyWillPromote": "退出すると{{name}}さんが新しい管理者になります"
+    },
+    "directInfo": {
+        "title": "チャット情報",
+        "close": "閉じる",
+        "profile": "プロフィールを見る",
+        "block": "ユーザーをブロック",
+        "unblock": "ブロックを解除",
+        "blockTitle": "このユーザーをブロックしますか？",
+        "blockConfirm": "{{name}}さんにメッセージや通話ができなくなり、友達関係も解除されます。",
+        "blocking": "ブロック中...",
+        "loadingStatus": "ブロック状態を読み込み中..."
     },
     "contacts": {
         "title": "連絡先",
@@ -134,6 +174,8 @@
         "friendNone": "この人に友達リクエストを送信する",
         "friendSent": "友達リクエストを送信しました。返信を待っています",
         "friendReceived": "{{name}}さんから友達リクエストが届きました",
+        "blockedByMe": "このユーザーをブロックしています。ブロックを解除すると会話を再開できます。",
+        "blockedMe": "このユーザーにブロックされているため、会話できません。",
         "sendFriend": "友達を追加",
         "pendingGroup": "あなたはこのグループに追加されました。参加を承認するか、削除してください。",
         "pendingDirect": "{{name}}さんはまだあなたの友達ではありません。返信するか承認してメインチャットに移動してください。",
@@ -156,7 +198,9 @@
     },
     "header": {
         "members": "{{n}}人のメンバー",
-        "addMember": "メンバーを追加"
+        "addMember": "メンバーを追加",
+        "moreOptions": "その他のオプション",
+        "startVideoCall": "ビデオ通話を開始"
     },
     "system": {
         "membersAdded": "{{actor}}が{{targets}}をグループに追加しました",
@@ -251,6 +295,10 @@
         "actionFailed": "アクションに失敗しました",
         "removed": "友達から削除しました",
         "removeFailed": "友達を削除できませんでした",
-        "callFirst": "通話する前にこの人にメッセージを送ってください"
+        "callFirst": "通話する前にこの人にメッセージを送ってください",
+        "blocked": "ユーザーをブロックしました",
+        "blockFailed": "ユーザーをブロックできませんでした",
+        "unblocked": "ブロックを解除しました",
+        "unblockFailed": "ブロックを解除できませんでした"
     }
 }

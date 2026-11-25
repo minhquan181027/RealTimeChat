@@ -4,6 +4,7 @@ import { socketAuthMiddleWare } from "../middlewares/socketMiddleware.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 import Conversation from "../models/Conversation.js";
+import { areUsersBlocked } from "../middlewares/friendMiddleware.js";
 
 let io;
 
@@ -60,11 +61,37 @@ export const initSocket = (httpServer) => {
 
         io.emit("user_online", userId);
 
-        socket.on("call_user", ({ targetUserIds, roomName, caller }) => {
-            // targetUserIds có thể là 1 người (direct) hoặc nhiều người (group)
-            targetUserIds.forEach(id => {
-                io.to(id).emit("incoming_call", { roomName, caller });
-            });
+        socket.on("call_user", async ({ targetUserIds, roomName, caller }) => {
+            try {
+                if (!Array.isArray(targetUserIds)) return;
+                const conversation = await Conversation.findById(roomName).select("type participants").lean();
+                if (!conversation) return;
+                const participantIds = conversation.participants.map((participant) => participant.userId.toString());
+                if (
+                    !participantIds.includes(userId) ||
+                    targetUserIds.some((targetId) => !participantIds.includes(targetId.toString()))
+                ) {
+                    return;
+                }
+                if (conversation.type === "direct") {
+                    const other = conversation.participants.find(
+                        (participant) => participant.userId.toString() !== userId
+                    );
+                    if (
+                        !other ||
+                        !targetUserIds.some((targetId) => targetId.toString() === other.userId.toString()) ||
+                        await areUsersBlocked(userId, other.userId)
+                    ) {
+                        return;
+                    }
+                }
+
+                targetUserIds.forEach((id) => {
+                    io.to(id).emit("incoming_call", { roomName, caller });
+                });
+            } catch (error) {
+                console.error("Lỗi xử lý yêu cầu gọi:", error);
+            }
         });
 
 

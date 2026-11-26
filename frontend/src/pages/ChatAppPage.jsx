@@ -512,7 +512,11 @@ const ChatAppPage = () => {
     const hasOpenChat = !!activeId || !!draftUser;
 
     return (
-        <SidebarProvider defaultOpen={false} className="h-svh overflow-hidden">
+        // 1. Nền ngoài cùng màu xám nhạt (light) / tối sâu (dark) để làm nổi các thẻ trắng bên trong
+        <SidebarProvider
+            defaultOpen={false}
+            className="h-svh overflow-hidden bg-base-200 md:p-2.5 md:gap-2.5"
+        >
             <CallModal />
             <ProfileDialog
                 user={profileUser}
@@ -521,14 +525,18 @@ const ChatAppPage = () => {
                 onCall={handleCallUser}
             />
 
+            {/* Thanh Sidebar icon ngoài cùng bên trái: có thể để trong suốt (giống Messenger) hoặc bo thẻ tùy ý */}
             <AppSidebar view={view} onChangeView={handleChangeView} mobileHidden={hasOpenChat} />
 
-            <SidebarInset className="flex min-w-0 w-full flex-1 flex-row overflow-hidden bg-background">
+            {/* 2. SidebarInset: nền trong suốt, tạo gap-2.5 để tách ChatList và ChatWindow */}
+            <SidebarInset className="flex min-w-0 w-full flex-1 flex-row overflow-hidden bg-transparent md:gap-2.5">
                 {view === "contacts" ? (
-                    <ContactsPage
-                        onOpenChat={handlePickUser}
-                        onBack={() => handleChangeView("main")}
-                    />
+                    <div className="flex-1 overflow-hidden bg-background md:rounded-2xl md:border md:border-border/60 md:shadow-xs">
+                        <ContactsPage
+                            onOpenChat={handlePickUser}
+                            onBack={() => handleChangeView("main")}
+                        />
+                    </div>
                 ) : (
                     <>
                         <ChatList
@@ -541,7 +549,8 @@ const ChatAppPage = () => {
                             onUnblockUser={unblockUser}
                             view={view}
                             onChangeView={handleChangeView}
-                            className={hasOpenChat ? "hidden md:flex" : "flex"}
+                            // 3. Bo góc + nền trắng + viền mảnh cho ChatList (chỉ áp dụng từ md trở lên để mobile vẫn full màn hình)
+                            className={`${hasOpenChat ? "hidden md:flex" : "flex"} bg-background md:rounded-2xl md:border md:border-border/60 md:shadow-xs overflow-hidden`}
                         />
 
                         <ChatWindow
@@ -574,7 +583,8 @@ const ChatAppPage = () => {
                             onLoadMore={handleLoadMore}
                             hasMore={hasMore}
                             loading={messageLoading}
-                            className={hasOpenChat ? "flex" : "hidden md:flex"}
+                            // 4. Bo góc + nền trắng + viền mảnh cho ChatWindow
+                            className={`${hasOpenChat ? "flex" : "hidden md:flex"} bg-background md:rounded-2xl md:border md:border-border/60 md:shadow-xs overflow-hidden`}
                         />
                     </>
                 )}

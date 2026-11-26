@@ -268,24 +268,20 @@ const AppSidebar = ({
                 </footer>
             </aside>
 
-            {/* ========================================
-                DESKTOP SIDEBAR
-                Custom React + Tailwind
-            ======================================== */}
+
 
             <aside
                 className="
                     relative hidden md:flex
-                    h-svh
-                    w-[60px] min-w-[60px] max-w-[60px]
+                    h-full
+                    w-[56px] min-w-[56px] max-w-[56px]
                     shrink-0 box-border
                     flex-col items-center
-                    border-r border-sidebar-border
-                    bg-sidebar text-sidebar-foreground
+                    bg-transparent text-base-content
                 "
             >
                 {/* Avatar */}
-                <header className="flex w-full shrink-0 items-center justify-center py-4">
+                <header className="flex w-full shrink-0 items-center justify-center py-2">
                     <Avatar {...avatarProps} />
                 </header>
 
@@ -295,7 +291,7 @@ const AppSidebar = ({
                 </nav>
 
                 {/* Settings */}
-                <footer className="flex w-full shrink-0 items-center justify-center pb-4">
+                <footer className="flex w-full shrink-0 items-center justify-center pb-2">
                     <SettingsMenu {...settingsProps} />
                 </footer>
             </aside>

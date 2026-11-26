@@ -142,7 +142,7 @@ const ChatWindow = ({
 
     if (!chat) {
         return (
-            <div className={cn("flex-1 items-center justify-center bg-muted/40 text-muted-foreground", className)}>
+            <div className={cn("flex-1 items-center justify-center bg-base-100 text-muted-foreground md:rounded-2xl md:border md:border-base-300 md:shadow-xs", className)}>
                 <div className="text-center">
                     <MessageSquare className="mx-auto mb-3 size-14 opacity-30" />
                     <p className="text-sm">{t("chatWindow.selectToStart")}</p>
@@ -160,9 +160,9 @@ const ChatWindow = ({
     };
 
     return (
-        <div className={cn("relative min-w-0 flex-1 flex-row bg-muted/40", className)}>
-            {/* Cột chat chính */}
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className={cn("relative min-w-0 flex-1 flex-row bg-transparent xl:gap-2.5", className)}>
+            {/* Cột chat chính: đóng khung thành thẻ nổi bo góc */}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-base-100 md:rounded-2xl md:border md:border-base-300 md:shadow-xs">
                 <ChatWindowHeader
                     chat={chat}
                     onBack={onBack}

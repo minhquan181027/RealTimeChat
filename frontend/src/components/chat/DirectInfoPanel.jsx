@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, UserRound, X } from "lucide-react";
+import { ChevronDown, UserRound, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -36,12 +36,21 @@ const DirectInfoPanel = ({ chat, messages, onClose, onProfileClick, onImageClick
     const shownPhotos = showAllPhotos ? photos : photos.slice(0, PHOTO_PREVIEW);
 
     return (
-        <aside className="absolute inset-0 z-30 flex flex-col bg-background xl:static xl:z-auto xl:w-96 xl:shrink-0 xl:border-l">
-            <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-                <h2 className="text-base font-semibold">{t("directInfo.title")}</h2>
-                <Button variant="ghost" size="icon" onClick={onClose} title={t("directInfo.close")}>
-                    <X className="size-5" />
+        <aside className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-base-100 md:rounded-2xl xl:static xl:z-auto xl:w-96 xl:shrink-0 xl:border xl:border-base-300 xl:shadow-xs">
+            <div className="relative flex h-16 shrink-0 items-center border-b px-4">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    title={t("groupInfo.close")}
+                    aria-label={t("groupInfo.close")}
+                >
+                    <ArrowLeft className="size-5" />
                 </Button>
+
+                <h2 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-base font-semibold">
+                    {t("groupInfo.title")}
+                </h2>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">

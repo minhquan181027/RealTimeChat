@@ -2,11 +2,9 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import axios from "axios";
 
 const api = axios.create({
-    // baseURL: import.meta.env.MODE === 'development' ? "http://localhost:1234/api" : "/api",
-    // withCredentials: true,
-    baseURL: "/api",
+    baseURL: import.meta.env.VITE_API_URL || "/api",
     withCredentials: true,
-})
+});
 
 // gắn access token vào req header
 api.interceptors.request.use((config) => {

@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from '@tailwindcss/vite';
-import basicSsl from '@vitejs/plugin-basic-ssl';
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

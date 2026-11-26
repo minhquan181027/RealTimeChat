@@ -195,15 +195,34 @@ export const initSocket = (httpServer) => {
                 const call = {
                     callId,
                     roomName,
+                    conversationType: conversation.type,
                     callerId: user._id,
                     targetUserIds: normalizedTargets,
                     acceptedAt: null,
                     acceptedBy: null,
+                    acceptedUserIds: new Set(),
+                    rejectedUserIds: new Set(),
                     startedAt: Date.now(),
                     timeout: null,
                 };
                 call.timeout = setTimeout(() => {
-                    void finishCall(callId, "missed");
+                    const activeCall = activeCalls.get(callId);
+                    if (!activeCall) return;
+                    if (activeCall.conversationType !== "group" || !activeCall.acceptedAt) {
+                        void finishCall(callId, "missed");
+                        return;
+                    }
+
+                    const payload = { callId, roomName: activeCall.roomName };
+                    activeCall.targetUserIds.forEach((targetId) => {
+                        if (
+                            activeCall.acceptedUserIds.has(targetId) ||
+                            activeCall.rejectedUserIds.has(targetId)
+                        ) return;
+                        activeCall.rejectedUserIds.add(targetId);
+                        io.to(targetId).emit("call_timeout", payload);
+                    });
+                    activeCall.timeout = null;
                 }, CALL_RING_TIMEOUT_MS);
                 activeCalls.set(callId, call);
 
@@ -231,6 +250,23 @@ export const initSocket = (httpServer) => {
             const call = activeCalls.get(callId);
             if (!call || !call.targetUserIds.includes(userId)) {
                 socket.emit("call_failed", { callId });
+                return;
+            }
+            if (call.conversationType === "group") {
+                if (call.rejectedUserIds.has(userId)) {
+                    socket.emit("call_ended", {
+                        callId,
+                        roomName: call.roomName,
+                        status: "rejected",
+                    });
+                    return;
+                }
+
+                call.acceptedUserIds.add(userId);
+                if (!call.acceptedAt) call.acceptedAt = Date.now();
+                const payload = { callId, roomName: call.roomName };
+                io.to(call.callerId.toString()).emit("call_accepted", payload);
+                io.to(userId).emit("call_accepted", payload);
                 return;
             }
             if (call.acceptedAt) {
@@ -273,6 +309,33 @@ export const initSocket = (httpServer) => {
                 call.callerId.toString() !== userId &&
                 !call.targetUserIds.includes(userId)
             )) return;
+
+            if (call.conversationType === "group") {
+                if (call.callerId.toString() === userId) {
+                    void finishCall(callId, call.acceptedAt ? "completed" : "cancelled");
+                    return;
+                }
+
+                if (call.acceptedUserIds.has(userId)) {
+                    call.acceptedUserIds.delete(userId);
+                    call.rejectedUserIds.add(userId);
+                    return;
+                }
+
+                call.rejectedUserIds.add(userId);
+                socket.emit("call_ended", {
+                    callId,
+                    roomName: call.roomName,
+                    status: "rejected",
+                });
+                if (
+                    !call.acceptedAt &&
+                    call.targetUserIds.every((targetId) => call.rejectedUserIds.has(targetId))
+                ) {
+                    void finishCall(callId, "rejected");
+                }
+                return;
+            }
 
             const status = call.acceptedAt
                 ? "completed"

@@ -122,7 +122,7 @@ const AppSidebar = ({ view, onChangeView, mobileHidden = false }) => {
                 </footer>
             </aside>
 
-            <Sidebar collapsible="icon" className="hidden md:flex">
+            <Sidebar collapsible="icon" className="hidden md:flex shrink-0">
                 <SidebarHeader className="items-center py-4">
                     <button
                         type="button"

@@ -195,7 +195,7 @@ export function ForgotPasswordForm({ className, ...props }) {
 
                         <div className="flex flex-col items-center text-center gap-2 mb-6">
                             <Link to="/" className="mx-auto block w-fit transition-transform hover:scale-105">
-                                <img src="/logo.svg" alt="Logo" className="h-10 w-auto" />
+                                <img src="/logomessage.png" alt="Logo" className="h-20 w-auto" />
                             </Link>
                             <h1 className="text-2xl font-bold tracking-tight">
                                 {step === 1 && "Quên mật khẩu"}

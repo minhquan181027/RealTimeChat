@@ -255,20 +255,25 @@ const MessageItem = React.memo(({
                 <div className="group/bubble relative w-fit max-w-full">
                     {!m.recalledAt && (
                         <div className={cn(
-                            "absolute bottom-0 z-30 hidden items-center gap-1 group-hover/message:flex group-focus-within/message:flex",
+                            "absolute bottom-0 z-30 flex items-center gap-1 [@media(hover:hover)]:hidden [@media(hover:hover)]:group-hover/message:flex [@media(hover:hover)]:group-focus-within/message:flex",
                             m.mine ? "right-full mr-2" : "left-full ml-2"
                         )}>
                             <div className="relative">
                                 <button
                                     type="button"
                                     title={t("chatWindow.react")}
+                                    aria-label={t("chatWindow.react")}
+                                    aria-expanded={reactionOpen}
                                     onClick={() => setReactionOpen((v) => !v)}
                                     className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                                 >
                                     <Smile className="size-4" />
                                 </button>
                                 {reactionOpen && (
-                                    <div className="absolute bottom-full left-0 mb-1 flex gap-1 rounded-lg border bg-background p-1 shadow-lg">
+                                    <div className={cn(
+                                        "absolute bottom-full z-40 mb-1 flex gap-1 rounded-lg border bg-background p-1 shadow-lg",
+                                        m.mine ? "left-0" : "right-0"
+                                    )}>
                                         {["👍", "❤️", "😂", "😮", "😢", "😡"].map((emoji) => (
                                             <button
                                                 key={emoji}

@@ -74,7 +74,7 @@ export function SignupForm({ className, ...props }) {
               {/* Header */}
               <div className="flex flex-col items-center text-center gap-2">
                 <a href="/" className="mx-auto block w-fit text-center">
-                  <img src="/logo.svg" alt="Logo" />
+                  <img src="/logomessage.png" alt="Logo" className="h-20 w-auto" />
                 </a>
 
                 <h1 className="text-2xl font-bold">Tạo tài khoản</h1>

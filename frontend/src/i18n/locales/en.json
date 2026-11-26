@@ -135,6 +135,7 @@
         "stopRecording": "Stop recording",
         "sendRecording": "Send recording",
         "recordingUnsupported": "This browser does not support audio recording.",
+        "recordingSecureContext": "Audio recording requires HTTPS. Open the app using its HTTPS address on your phone.",
         "microphonePermission": "Could not access the microphone. Check your browser permissions.",
         "recordingFailed": "Could not record audio. Please try again.",
         "recordingEmpty": "The recording is empty. Please try again.",

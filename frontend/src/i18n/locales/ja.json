@@ -108,6 +108,7 @@
         "sendImage": "画像を送信",
         "send": "送信",
         "like": "いいね",
+        "recordingSecureContext": "録音にはHTTPS接続が必要です。スマートフォンでHTTPSアドレスからアプリを開いてください。",
         "onlyImages": "画像のみサポートされています。",
         "maxSize": "画像は5MB以下である必要があります。",
         "gifPicker": "GIFを選択",

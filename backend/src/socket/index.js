@@ -9,7 +9,7 @@ import { areUsersBlocked } from "../middlewares/friendMiddleware.js";
 
 let io;
 
-// 🆕 Dùng Map để lưu những người đang online: { userId: Set(socketId1, socketId2) }
+//  Dùng Map để lưu những người đang online: { userId: Set(socketId1, socketId2) }
 const onlineUsers = new Map();
 const activeCalls = new Map();
 const CALL_RING_TIMEOUT_MS = 2 * 60 * 1000;
@@ -115,7 +115,12 @@ export const invalidateMembers = (conversationId) => {
 export const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: ["http://localhost:5173", "http://192.168.1.154:5173"], // Nhớ check lại IP
+            origin: [
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://192.168.1.154:5173",
+                "https://192.168.1.154:5173",
+            ], // Nhớ check lại IP
             credentials: true,
         },
     });

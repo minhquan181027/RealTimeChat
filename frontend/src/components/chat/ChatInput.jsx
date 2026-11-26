@@ -103,6 +103,10 @@ const ChatInput = ({ onSend, onSendGif, onUpload, onSendAudio, onTyping, disable
 
     const handleStartRecording = async () => {
         if (disabled || isRecording || audioPreview) return;
+        if (!window.isSecureContext) {
+            toast.error(t("chatInput.recordingSecureContext"));
+            return;
+        }
         if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
             toast.error(t("chatInput.recordingUnsupported"));
             return;

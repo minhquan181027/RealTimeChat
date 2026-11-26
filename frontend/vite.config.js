@@ -14,9 +14,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // 🔥 THÊM BLOCK SERVER NÀY VÀO
+
   server: {
-    host: true, // Cho phép truy cập qua IP LAN
+    host: true, // Cho ph
     port: 5173,
     proxy: {
       '/api': {
@@ -24,6 +24,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+
     },
   },
 })

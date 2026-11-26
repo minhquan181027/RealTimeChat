@@ -85,8 +85,8 @@ export function SignInForm({ className, ...props }) {
                         <div className="flex flex-col gap-6">
                             {/* Header */}
                             <div className="flex flex-col items-center text-center gap-2 mb-2">
-                                <a href="/" className="mx-auto block w-fit transition-transform hover:scale-105">
-                                    <img src="/logo.svg" alt="Logo" className="h-10 w-auto" />
+                                <a href="/" className="mx-auto block w-fit transition-transform hover:scale-150">
+                                    <img src="/logomessage.png" alt="Logo" className="h-20 w-auto" />
                                 </a>
 
                                 <h1 className="text-2xl font-bold tracking-tight">

@@ -66,8 +66,10 @@ const ChatAppPage = () => {
         if (activeId) fetchMessages(activeId);
     }, [activeId, fetchMessages]);
 
-    useEffect(() => {
-        if (activeId && !conversations.some((c) => c._id === activeId)) setActiveId(null);
+    const validActiveId = useMemo(() => {
+        return conversations.some((c) => c._id === activeId)
+            ? activeId
+            : null;
     }, [conversations, activeId]);
 
     const handleLoadMore = useCallback(() => {

@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useSocketStore } from "@/stores/useSocketStore";
 import axios from "axios";
 
 const api = axios.create({
@@ -31,6 +32,11 @@ api.interceptors.response.use((res) => res, async (error) => {
             const res = await api.post("/auth/refresh", {}, { withCredentials: true })
             const newAccessToken = res.data.accessToken;
             useAuthStore.getState().setAccessToken(newAccessToken);
+
+            // Cập nhật Socket.IO
+            const { useSocketStore } = await import('@/stores/useSocketStore');
+
+            useSocketStore.getState().updateSocketToken(newAccessToken);
 
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return api(originalRequest);

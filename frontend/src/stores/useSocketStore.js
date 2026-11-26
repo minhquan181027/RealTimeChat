@@ -32,14 +32,19 @@ export const useSocketStore = create((set, get) => ({
             transports: ['websocket'],
             autoConnect: true,
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: Infinity,
             reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
         });
 
         set({ socket });
 
         socket.on("connect", () => {
             console.log("🟢 Đã kết nối với socket:", socket.id);
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error.message);
         });
 
         // 🆕 1. Lấy danh sách online ban đầu (Backend gửi ngay khi vừa kết nối)
@@ -161,6 +166,21 @@ export const useSocketStore = create((set, get) => ({
             }
         });
 
+    },
+
+    updateSocketToken: (newToken) => {
+        const socket = get().socket;
+
+        if (!socket) return;
+
+        socket.auth = {
+            token: newToken,
+        };
+
+        if (socket.connected) {
+            socket.disconnect();
+            socket.connect();
+        }
     },
 
     disconnectSocket: () => {

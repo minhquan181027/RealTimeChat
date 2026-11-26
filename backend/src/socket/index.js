@@ -120,10 +120,13 @@ export const initSocket = (httpServer) => {
                 "https://localhost:5173",
                 "http://192.168.1.154:5173",
                 "https://192.168.1.154:5173",
+                process.env.CLIENT_URL,
             ], // Nhớ check lại IP
             credentials: true,
+            methods: ["GET", "POST"],
         },
     });
+
     io.use(socketAuthMiddleWare);
 
     io.on("connection", (socket) => {

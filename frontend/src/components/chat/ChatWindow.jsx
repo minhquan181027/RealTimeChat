@@ -39,8 +39,12 @@ const ChatWindow = ({
     const currentUser = useAuthStore((state) => state.user);
 
     const typingMap = useChatStore((s) => s.typing[chat?.id]);
-    const typingNames = Object.values(typingMap || {});
-    const typingCount = typingNames.length;
+    const typingUsers = Object.entries(typingMap || {}).map(([userId, value]) => ({
+        userId,
+        displayName: typeof value === "string" ? value : value?.displayName,
+        avatarUrl: typeof value === "object" ? value?.avatarUrl : undefined,
+    }));
+    const typingCount = typingUsers.length;
 
     useEffect(() => {
         const gifIds = [...new Set(
@@ -309,6 +313,21 @@ const ChatWindow = ({
                             {!chat.isGroup && (
                                 <img src={chat.avatar} alt="" className="size-9 shrink-0 rounded-full object-cover" />
                             )}
+                            {chat.isGroup && (
+                                <div className="flex -space-x-2">
+                                    {typingUsers.slice(0, 3).map((typingUser) => (
+                                        <img
+                                            key={typingUser.userId}
+                                            src={
+                                                typingUser.avatarUrl ||
+                                                `https://ui-avatars.com/api/?name=${encodeURIComponent(typingUser.displayName || "U")}&background=random`
+                                            }
+                                            alt=""
+                                            className="size-9 shrink-0 rounded-full object-cover ring-2 ring-base-100"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                             <div className="rounded-2xl bg-background px-4 py-3 shadow-sm">
                                 <span className="flex gap-1">
                                     {[0, 150, 300].map((d) => (
@@ -323,7 +342,7 @@ const ChatWindow = ({
                             {chat.isGroup && (
                                 <span className="mb-2 text-xs text-muted-foreground">
                                     {typingCount === 1
-                                        ? t("typing.named", { name: typingNames[0] })
+                                        ? t("typing.named", { name: typingUsers[0].displayName })
                                         : t("typing.many")}
                                 </span>
                             )}

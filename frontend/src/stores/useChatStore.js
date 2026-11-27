@@ -290,13 +290,13 @@ export const useChatStore = create(
                 }
             },
 
-            setTyping: ({ conversationId, userId, displayName, isTyping }) => {
+            setTyping: ({ conversationId, userId, displayName, avatarUrl, isTyping }) => {
                 const key = `${conversationId}:${userId}`;
                 clearTimeout(typingTimers[key]);
 
                 set((s) => {
                     const cur = { ...(s.typing[conversationId] || {}) };
-                    if (isTyping) cur[userId] = displayName;
+                    if (isTyping) cur[userId] = { displayName, avatarUrl };
                     else delete cur[userId];
                     return { typing: { ...s.typing, [conversationId]: cur } };
                 });

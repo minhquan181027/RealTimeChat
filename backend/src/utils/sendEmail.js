@@ -1,17 +1,12 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendOtpEmail = async (email, otp) => {
-    // Cấu hình tài khoản gửi mail (Nên dùng App Password của Gmail)
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER, // ví dụ: your-email@gmail.com
-            pass: process.env.EMAIL_PASS  // Mật khẩu ứng dụng (App Password)
-        }
-    });
-
-    const mailOptions = {
-        from: '"Hệ thống" <no-reply@yourdomain.com>',
+    const { data, error } = await resend.emails.send({
+        // Nếu chưa có domain riêng, Resend cho dùng mặc định onboarding@resend.dev (chỉ gửi được tới email bạn dùng đăng ký Resend)
+        // Nếu muốn gửi cho mọi người dùng, cần add 1 domain miễn phí/rẻ tiền vào Resend
+        from: 'Hệ thống <onboarding@resend.dev>',
         to: email,
         subject: 'Mã xác thực khôi phục mật khẩu',
         html: `
@@ -23,7 +18,9 @@ export const sendOtpEmail = async (email, otp) => {
                 <p style="color: #666; font-size: 14px;">Mã này sẽ hết hạn sau <b>5 phút</b>. Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
             </div>
         `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    if (error) {
+        throw new Error(error.message);
+    }
 };

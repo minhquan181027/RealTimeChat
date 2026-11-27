@@ -364,6 +364,7 @@ export const initSocket = (httpServer) => {
                         conversationId,
                         userId,
                         displayName: user.displayName,
+                        avatarUrl: user.avatarUrl,
                         isTyping: !!isTyping,
                     });
                 });

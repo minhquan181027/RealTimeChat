@@ -1,17 +1,36 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import { getIO } from "../socket/index.js";
+import { createHash } from "node:crypto";
+import redis from "../libs/redis.js";
+import { STATIC_DICTIONARY } from "../constants/staticDictionary.js";
 
 const ENDPOINT = "https://translate.googleapis.com/translate_a/single";
-const MAX_CACHE = 500;
-const cache = new Map(); // `${lang}|${text}` -> { text, sourceLang }
+
 
 // Nếu bị Google giới hạn tốc độ (429) thì tạm nghỉ, tránh gọi dồn dập
 let blockedUntil = 0;
 
-const remember = (key, value) => {
-    if (cache.size >= MAX_CACHE) cache.delete(cache.keys().next().value);
-    cache.set(key, value);
+const CACHE_TTL = 60 * 60 * 24 * 30; // 30 ngày
+
+const createCacheKey = (lang, text) => {
+    const normalized = text.trim().toLowerCase().replace(/\s+/g, " ");
+    const hash = createHash("sha256").update(normalized).digest("hex");
+    return `translation:v1:${lang}:${hash}`;
+};
+
+
+
+const saveCachedTranslation = async (lang, text, value) => {
+    try {
+        const key = createCacheKey(lang, text);
+
+        await redis.set(key, JSON.stringify(value), {
+            EX: CACHE_TTL,
+        });
+    } catch (error) {
+        console.error("Redis SET error:", error.message);
+    }
 };
 
 export const shouldTranslate = (text) => {
@@ -74,34 +93,91 @@ const callGoogle = async (text, to, signal) => {
     };
 };
 
-// Trả về { sourceLang, translations: { en: "..." } }
+const normalizeForStatic = (text) =>
+    text.trim().toLowerCase().replace(/[!?.~,]+$/g, "").replace(/\s+/g, " ");
+
 export const translateText = async (text, targets) => {
-    const result = { sourceLang: null, translations: {} };
-    const missing = [];
+    const result = {
+        sourceLang: null,
+        translations: {},
+    };
+
+    if (!targets.length) return result;
+
+    // 0. Kiểm tra từ điển tĩnh trên RAM (0ms - không tốn ping Redis hay Google)
+    const staticKey = normalizeForStatic(text);
+    const staticEntry = STATIC_DICTIONARY[staticKey];
+    const missingAfterStatic = [];
 
     for (const to of targets) {
-        const hit = cache.get(`${to}|${text}`);
-        if (hit) {
-            result.sourceLang = hit.sourceLang;
-            result.translations[to] = hit.text;
+        if (staticEntry && staticEntry[to]) {
+            result.sourceLang = staticEntry.sourceLang;
+            result.translations[to] = staticEntry[to];
+
+            console.log(`⚡ [STATIC HIT] "${text}" -> ${to}`);
         } else {
-            missing.push(to);
+            missingAfterStatic.push(to);
         }
     }
 
-    if (missing.length && Date.now() >= blockedUntil) {
+    // Nếu từ điển tĩnh đã dịch đủ hết các ngôn ngữ cần thiết thì trả về luôn
+    if (!missingAfterStatic.length) {
+        if (result.sourceLang) delete result.translations[result.sourceLang];
+        return result;
+    }
+
+    const missingAfterRedis = [];
+
+    // 1. Kiểm tra Redis bằng mGet cho những ngôn ngữ chưa có trong từ điển tĩnh
+    if (redis.isReady) {
+        try {
+            const keys = missingAfterStatic.map((to) => createCacheKey(to, text));
+            const cachedValues = await redis.mGet(keys);
+
+            missingAfterStatic.forEach((to, idx) => {
+                const raw = cachedValues[idx];
+                if (raw) {
+                    const hit = JSON.parse(raw);
+                    result.sourceLang = hit.sourceLang || result.sourceLang;
+                    result.translations[to] = hit.text;
+                    console.log(`🟢 [REDIS HIT] "${text}" -> ${to}`);
+                } else {
+                    missingAfterRedis.push(to);
+                }
+            });
+        } catch (error) {
+            console.error("Redis MGET error:", error.message);
+            missingAfterRedis.push(...missingAfterStatic);
+        }
+    } else {
+        missingAfterRedis.push(...missingAfterStatic);
+    }
+
+    // 2. Chỉ gọi Google cho những ngôn ngữ cả RAM lẫn Redis đều không có
+    if (missingAfterRedis.length && Date.now() >= blockedUntil) {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 3000); // quá 3 giây thì bỏ, giữ tin gốc
+        const timer = setTimeout(() => ctrl.abort(), 3000);
 
         try {
             const results = await Promise.all(
-                missing.map((to) => callGoogle(text, to, ctrl.signal).then((r) => ({ to, ...r })))
+                missingAfterRedis.map((to) =>
+                    callGoogle(text, to, ctrl.signal).then((r) => ({ to, ...r }))
+                )
             );
-            for (const r of results) {
-                result.sourceLang = r.sourceLang || result.sourceLang;
-                result.translations[r.to] = r.text;
-                remember(`${r.to}|${text}`, { text: r.text, sourceLang: r.sourceLang });
-            }
+
+            // 3. Lưu đồng thời các bản dịch mới vào Redis
+            await Promise.all(
+                results.map((r) => {
+                    result.sourceLang = r.sourceLang || result.sourceLang;
+                    result.translations[r.to] = r.text;
+
+                    return saveCachedTranslation(r.to, text, {
+                        text: r.text,
+                        sourceLang: r.sourceLang,
+                    });
+                })
+            );
+            console.log(`🌐 [GOOGLE API] "${text}" -> ${missingAfterRedis.join(", ")}`);
         } catch (err) {
             console.error("Lỗi gọi Google Translate:", err.message);
         } finally {
@@ -109,8 +185,11 @@ export const translateText = async (text, targets) => {
         }
     }
 
-    // Tin đã cùng ngôn ngữ với đích thì không cần bản dịch
-    if (result.sourceLang) delete result.translations[result.sourceLang];
+    // Bỏ qua nếu ngôn ngữ đích trùng với ngôn ngữ gốc của tin nhắn
+    if (result.sourceLang) {
+        delete result.translations[result.sourceLang];
+    }
+
     return result;
 };
 

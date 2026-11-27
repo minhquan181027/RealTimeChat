@@ -6,8 +6,11 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { createServer } from 'http';
 
+
 import { connectDB } from './libs/db.js';
 import { initSocket } from './socket/index.js';
+
+import { connectRedis } from './libs/redis.js';
 
 import authRoute from './routes/authRoute.js';
 import userRoute from './routes/userRoute.js';
@@ -64,6 +67,7 @@ app.use('/api/livekit', livekitRoute);
 async function startServer() {
     try {
         await connectDB();
+        await connectRedis();
 
         initSocket(server);
 

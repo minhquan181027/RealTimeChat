@@ -1,8 +1,16 @@
 import { useState } from "react";
-import { ChevronDown, UserRound, ArrowLeft } from "lucide-react";
+import { Ban, ChevronDown, UserRound, ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 const PHOTO_PREVIEW = 9;
 
@@ -27,13 +35,38 @@ const Section = ({ title, children }) => {
     );
 };
 
-const DirectInfoPanel = ({ chat, messages, onClose, onProfileClick, onImageClick }) => {
+const DirectInfoPanel = ({
+    chat,
+    messages,
+    onClose,
+    onProfileClick,
+    onImageClick,
+    directBlockStatus,
+    onBlockUser,
+    onUnblockUser,
+}) => {
     const { t } = useTranslation();
     const [showAllPhotos, setShowAllPhotos] = useState(false);
+    const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+    const [updatingBlock, setUpdatingBlock] = useState(false);
     const photos = [...messages].reverse().filter((message) =>
         message.imgURL && !message.recalledAt && !message.pending
     );
     const shownPhotos = showAllPhotos ? photos : photos.slice(0, PHOTO_PREVIEW);
+    const isBlockedByMe = Boolean(directBlockStatus?.blockedByMe);
+
+    const handleConfirmBlock = async () => {
+        setUpdatingBlock(true);
+        const blocked = await onBlockUser?.(chat.otherUserId);
+        setUpdatingBlock(false);
+        if (blocked) setBlockConfirmOpen(false);
+    };
+
+    const handleUnblock = async () => {
+        setUpdatingBlock(true);
+        await onUnblockUser?.(chat.otherUserId);
+        setUpdatingBlock(false);
+    };
 
     return (
         <aside className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-base-100 md:rounded-2xl xl:static xl:z-auto xl:w-96 xl:shrink-0 xl:border xl:border-base-300 xl:shadow-xs">
@@ -113,6 +146,57 @@ const DirectInfoPanel = ({ chat, messages, onClose, onProfileClick, onImageClick
                     <p className="py-2 text-center text-sm text-muted-foreground">{t("groupInfo.noFiles")}</p>
                 </Section>
             </div>
+
+            <div className="shrink-0 border-t p-4">
+                {directBlockStatus ? (
+                    <Button
+                        variant={isBlockedByMe ? "secondary" : "destructive"}
+                        className="w-full"
+                        disabled={updatingBlock}
+                        onClick={isBlockedByMe ? handleUnblock : () => setBlockConfirmOpen(true)}
+                    >
+                        <Ban />
+                        {isBlockedByMe ? t("directInfo.unblock") : t("directInfo.block")}
+                    </Button>
+                ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                        <Ban />
+                        {t("directInfo.loadingStatus")}
+                    </Button>
+                )}
+            </div>
+
+            <Dialog
+                open={blockConfirmOpen}
+                onOpenChange={(open) => {
+                    if (!updatingBlock) setBlockConfirmOpen(open);
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t("directInfo.blockTitle")}</DialogTitle>
+                        <DialogDescription>
+                            {t("directInfo.blockConfirm", { name: chat.name })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="secondary"
+                            disabled={updatingBlock}
+                            onClick={() => setBlockConfirmOpen(false)}
+                        >
+                            {t("common.cancel")}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            disabled={updatingBlock}
+                            onClick={handleConfirmBlock}
+                        >
+                            {updatingBlock ? t("directInfo.blocking") : t("directInfo.block")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </aside>
     );
 };

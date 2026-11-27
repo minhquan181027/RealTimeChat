@@ -10,16 +10,12 @@ import { formatTime } from "@/utils/date";
 import { systemText } from "@/utils/systemMessage";
 import ChatListHeader from "./ChatListHeader";
 import StatusBadge from "./StatusBadge";
-import ConversationActionsMenu from "./ConversationActionsMenu";
 
 const ChatList = ({
     activeId,
     onSelect,
     onPickUser,
     onOpenConversation,
-    onRequestLeaveGroup,
-    onBlockUser,
-    onUnblockUser,
     view = "main",
     onChangeView,
     className,
@@ -195,15 +191,6 @@ const ChatList = ({
                                         </div>
                                     </div>
                                 </button>
-                                <ConversationActionsMenu
-                                    conversation={c}
-                                    name={name}
-                                    avatar={avatar}
-                                    otherUserId={c.type === "direct" ? otherUserId : null}
-                                    onRequestLeaveGroup={onRequestLeaveGroup}
-                                    onBlockUser={onBlockUser}
-                                    onUnblockUser={onUnblockUser}
-                                />
                             </div>
                         );
                     })

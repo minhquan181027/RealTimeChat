@@ -21,7 +21,7 @@ const ChatWindow = ({
     onSendGif,
     sending, uploading, onLoadMore, hasMore, loading,
     friendStatus, onSendFriend, onAcceptFriend, onAvatarClick, onCallAgain, onMemberClick, onLeaveGroup, onRemoveMember,
-    onSetDeputyAdmin, directBlockStatus, leavePromptRequest = 0, onClearLeavePromptRequest, className,
+    onSetDeputyAdmin, directBlockStatus, onBlockUser, onUnblockUser, leavePromptRequest = 0, onClearLeavePromptRequest, className,
 }) => {
     const { t } = useTranslation();
 
@@ -367,6 +367,9 @@ const ChatWindow = ({
                     onClose={() => setInfoOpen(false)}
                     onProfileClick={onMemberClick}
                     onImageClick={setSelectedImage}
+                    directBlockStatus={directBlockStatus}
+                    onBlockUser={onBlockUser}
+                    onUnblockUser={onUnblockUser}
                 />
             )}
 

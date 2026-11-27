@@ -354,13 +354,6 @@ const ChatAppPage = () => {
         return ok;
     }, [activeId, handleBack]);
 
-    const handleRequestLeaveGroup = useCallback((conversationId) => {
-        setDraftUser(null);
-        setView("main");
-        setActiveId(conversationId);
-        setLeavePromptRequest((request) => request + 1);
-    }, []);
-
     const handleRemoveGroupMember = useCallback(async (memberId) => {
         if (!activeId) return false;
         return useChatStore.getState().removeGroupMember(activeId, memberId);
@@ -544,9 +537,6 @@ const ChatAppPage = () => {
                             onSelect={handleSelect}
                             onPickUser={handlePickUser}
                             onOpenConversation={handleOpenConversation}
-                            onRequestLeaveGroup={handleRequestLeaveGroup}
-                            onBlockUser={blockUser}
-                            onUnblockUser={unblockUser}
                             view={view}
                             onChangeView={handleChangeView}
                             // 3. Bo góc + nền trắng + viền mảnh cho ChatList (chỉ áp dụng từ md trở lên để mobile vẫn full màn hình)
@@ -572,6 +562,8 @@ const ChatAppPage = () => {
                             onRemoveMember={handleRemoveGroupMember}
                             onSetDeputyAdmin={handleSetGroupDeputyAdmin}
                             directBlockStatus={directBlockStatus}
+                            onBlockUser={blockUser}
+                            onUnblockUser={unblockUser}
                             onAvatarClick={handleAvatarClick}
                             onCallAgain={handleCallAgain}
                             onMemberClick={handleMemberClick}

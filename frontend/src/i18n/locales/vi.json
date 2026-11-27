@@ -172,6 +172,7 @@
     },
     "chatList": {
         "title": "Đoạn chat",
+        "loading": "Đang tải cuộc trò chuyện...",
         "pendingTitle": "Tin nhắn chờ",
         "search": "Tìm kiếm...",
         "backToChats": "← Quay lại đoạn chat",

@@ -172,6 +172,7 @@
     },
     "chatList": {
         "title": "Chats",
+        "loading": "Loading conversations...",
         "pendingTitle": "Message requests",
         "search": "Search...",
         "backToChats": "← Back to chats",

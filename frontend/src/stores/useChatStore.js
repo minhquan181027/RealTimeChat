@@ -39,6 +39,8 @@ export const useChatStore = create(
 
             // ==================== FETCH CONVERSATIONS ====================
             fetchConversations: async () => {
+                if (get().conLoading) return;
+
                 try {
                     set({ conLoading: true });
                     const { conversations } = await chatService.fetchConversations();

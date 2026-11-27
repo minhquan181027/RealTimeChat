@@ -52,7 +52,7 @@ export const useAuthStore = create((set, get) => ({
             get().setAccessToken(accessToken);
             const user = await get().fetchMe();
             if (user && !user.needsSetup) {
-                await useChatStore.getState().fetchConversations();
+                void useChatStore.getState().fetchConversations();
             }
 
 
@@ -78,7 +78,7 @@ export const useAuthStore = create((set, get) => ({
 
             const user = await get().fetchMe();
             if (user && !user.needsSetup) {
-                await useChatStore.getState().fetchConversations();
+                void useChatStore.getState().fetchConversations();
             }
             toast.success(i18n.t("toast.signInOk"))
         } catch (error) {

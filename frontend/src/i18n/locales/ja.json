@@ -144,6 +144,7 @@
     },
     "chatList": {
         "title": "チャット",
+        "loading": "会話を読み込み中...",
         "pendingTitle": "メッセージリクエスト",
         "search": "検索...",
         "backToChats": "← チャットに戻る",

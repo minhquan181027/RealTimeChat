@@ -133,7 +133,7 @@ export const initSocket = (httpServer) => {
         const user = socket.user;
         const userId = user._id.toString();
 
-        console.log(`🟢 ${user.displayName} online với socketId: ${socket.id}`);
+
 
 
         if (!onlineUsers.has(userId)) {
@@ -370,7 +370,7 @@ export const initSocket = (httpServer) => {
         });
 
         socket.on("disconnect", async () => {
-            console.log(`🔴 socket disconnected: ${socket.id}`);
+
 
             const userSockets = onlineUsers.get(userId);
             if (userSockets) {

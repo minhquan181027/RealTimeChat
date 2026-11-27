@@ -5,7 +5,10 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 const ProtectedRoute = () => {
     const { accessToken, loading, refresh, fetchMe } = useAuthStore()
     const location = useLocation()
-    const [starting, setStarting] = useState(true)
+    const [starting, setStarting] = useState(() => {
+        const { accessToken, user } = useAuthStore.getState()
+        return !accessToken || !user
+    })
 
     useEffect(() => {
         const init = async () => {

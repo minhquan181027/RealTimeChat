@@ -296,15 +296,21 @@ export const markAsRead = async (req, res) => {
             return res.status(200).json({ message: "Chưa chấp nhận, bỏ qua" });
         }
 
-        const currentUnread = conversation.unreadCounts || new Map();
-        currentUnread.set(userId.toString(), 0);
-        conversation.unreadCounts = currentUnread;
-        conversation.seenBy.addToSet(userId);
-        await conversation.save();
+        await Conversation.updateOne(
+            { _id: conversationId },
+            {
+                $addToSet: { seenBy: userId },
+                $set: { [`unreadCounts.${userId}`]: 0 },
+            }
+        );
+
+        // Đọc lại bản mới nhất để gửi danh sách "đã xem" đúng
+        const fresh = await Conversation.findById(conversationId).select("seenBy participants").lean();
+        if (!fresh) return res.status(404).json({ message: "Không tìm thấy cuộc trò chuyện" });
 
         const io = getIO();
-        const seenByStrings = conversation.seenBy.map((id) => id.toString());
-        conversation.participants.forEach((p) => {
+        const seenByStrings = fresh.seenBy.map((id) => id.toString());
+        fresh.participants.forEach((p) => {
             if (p.status === "declined") return;
             io.to(p.userId.toString()).emit("conversation_seen", {
                 conversationId,

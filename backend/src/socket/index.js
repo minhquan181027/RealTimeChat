@@ -43,7 +43,8 @@ const saveCallHistory = async (call, status) => {
     });
     await message.populate("senderId", "displayName avatarUrl");
 
-    conversation.set({
+    const callerStr = call.callerId.toString();
+    const $set = {
         lastMessage: {
             _id: message._id.toString(),
             content: "",
@@ -54,17 +55,19 @@ const saveCallHistory = async (call, status) => {
         },
         lastMessageAt: message.createdAt,
         seenBy: [call.callerId],
-    });
+        [`unreadCounts.${callerStr}`]: 0,
+    };
+
+    const $inc = {};
     conversation.participants.forEach((participant) => {
         if (participant.status === "declined") return;
         const participantId = participant.userId.toString();
-        const unreadCount = conversation.unreadCounts.get(participantId) || 0;
-        conversation.unreadCounts.set(
-            participantId,
-            participantId === call.callerId.toString() ? 0 : unreadCount + 1
-        );
+        if (participantId !== callerStr) $inc[`unreadCounts.${participantId}`] = 1;
     });
-    await conversation.save();
+
+    const update = { $set };
+    if (Object.keys($inc).length) update.$inc = $inc;
+    await Conversation.updateOne({ _id: conversation._id }, update);
 
     conversation.participants.forEach((participant) => {
         if (participant.status !== "declined") {

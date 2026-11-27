@@ -136,7 +136,7 @@ export const useSocketStore = create((set, get) => ({
             // (Tùy chọn) Phát âm thanh thông báo nếu không phải là tin của mình
             const currentUser = useAuthStore.getState().user;
             if (message.senderId._id !== currentUser._id) {
-                new Audio('/notification.mp3').play();
+                new Audio('/notification.mp3').play().catch(() => { });
             }
         });
 

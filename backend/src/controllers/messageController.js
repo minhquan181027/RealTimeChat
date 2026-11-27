@@ -38,30 +38,41 @@ const getGifPayload = (gifProvider, gifId, imgURL) => {
     return { gifProvider, gifId: normalizedId };
 };
 
-const updateConversationAfterNewMessage = (conversation, message, senderId) => {
-    conversation.set({
+// Cập nhật nguyên tử bằng một lệnh duy nhất, không đọc rồi ghi đè nên không còn VersionError
+const applyNewMessage = async (conversation, message, senderId) => {
+    const senderStr = senderId.toString();
+
+    const $set = {
         lastMessage: {
             _id: message._id.toString(),
             content: message.content,
-            type: message.type, // 🆕 Cập nhật type
+            type: message.type,
             senderId,
             createdAt: message.createdAt,
         },
         lastMessageAt: message.createdAt,
         seenBy: [senderId],
-    });
+        [`unreadCounts.${senderStr}`]: 0,
+        // Người gửi trả lời thì cuộc trò chuyện thành chính thức
+        "participants.$[me].status": "accepted",
+    };
 
-    // Người gửi trả lời thì cuộc trò chuyện thành chính thức
-    const sender = conversation.participants.find(
-        (p) => p.userId.toString() === senderId.toString()
-    );
-    if (sender && sender.status !== "accepted") sender.status = "accepted";
-
+    const $inc = {};
     conversation.participants.forEach((p) => {
-        const memberId = p.userId.toString();
-        const prev = conversation.unreadCounts.get(memberId) || 0;
-        conversation.unreadCounts.set(memberId, memberId === senderId.toString() ? 0 : prev + 1);
+        const id = p.userId.toString();
+        if (id !== senderStr && p.status !== "declined") $inc[`unreadCounts.${id}`] = 1;
     });
+
+    const update = { $set };
+    if (Object.keys($inc).length) update.$inc = $inc;
+
+    await Conversation.updateOne({ _id: conversation._id }, update, {
+        arrayFilters: [{ "me.userId": senderId }],
+    });
+
+    // Đồng bộ bản trong bộ nhớ để emitNewMessage gửi đúng cho người vừa được "accepted"
+    const me = conversation.participants.find((p) => p.userId.toString() === senderStr);
+    if (me) me.status = "accepted";
 };
 
 const emitNewMessage = (conversation, message) => {
@@ -164,8 +175,7 @@ export const sendDirectMessage = async (req, res) => {
             type: messageType,
         });
 
-        updateConversationAfterNewMessage(conversation, message, senderId);
-        await conversation.save();
+        await applyNewMessage(conversation, message, senderId);
 
         // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
         await message.populate("senderId", "displayName avatarUrl");
@@ -235,8 +245,7 @@ export const sendGroupMessage = async (req, res) => {
             type: messageType,
         });
 
-        updateConversationAfterNewMessage(conversation, message, senderId);
-        await conversation.save();
+        await applyNewMessage(conversation, message, senderId);
 
         // 🆕 Populate để lấy thông tin người gửi (tên, avatar) gửi xuống FE
         await message.populate("senderId", "displayName avatarUrl");
@@ -394,10 +403,10 @@ export const recallMessage = async (req, res) => {
 
         const conversation = await Conversation.findById(message.conversationId);
         if (conversation) {
-            if (conversation.lastMessage?._id?.toString() === message._id.toString()) {
-                conversation.lastMessage.content = "";
-                await conversation.save();
-            }
+            await Conversation.updateOne(
+                { _id: conversation._id, "lastMessage._id": message._id.toString() },
+                { $set: { "lastMessage.content": "" } }
+            );
             emitMessageUpdate(conversation, "message_recalled", {
                 conversationId: message.conversationId.toString(),
                 messageId: message._id.toString(),

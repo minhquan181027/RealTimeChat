@@ -193,8 +193,10 @@
     },
     "chatWindow": {
         "selectToStart": "Chọn một cuộc trò chuyện để bắt đầu",
+        "loadingMessages": "Đang tải tin nhắn...",
         "loadingOld": "Đang tải tin nhắn cũ...",
         "seen": "Đã xem",
+        "sent": "Đã gửi",
         "someone": "Ai đó",
         "retry": "Gửi lại",
         "imageAlt": "Ảnh",

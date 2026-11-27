@@ -59,7 +59,6 @@ export function SignInForm({ className, ...props }) {
 
             await googleLogin(response.credential);
 
-            toast.success("Đăng nhập thành công!");
             navigate("/");
         } catch (error) {
             const message =

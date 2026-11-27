@@ -1,6 +1,6 @@
 // src/components/chat/ChatWindow.jsx
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
-import { MessageSquare, UserPlus, X } from "lucide-react";
+import { LoaderCircle, MessageSquare, UserPlus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 import ChatInput from "./ChatInput";
@@ -195,7 +195,18 @@ const ChatWindow = ({
                     style={{ overflowAnchor: "none" }}
                     className="min-h-0 flex flex-1 flex-col gap-y-3 overflow-y-auto p-4"
                 >
-                    {loading && hasMore && (
+                    {loading && messages.length === 0 && (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="flex min-h-32 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"
+                        >
+                            <LoaderCircle className="size-5 animate-spin text-primary" aria-hidden="true" />
+                            <span>{t("chatWindow.loadingMessages")}</span>
+                        </div>
+                    )}
+
+                    {loading && messages.length > 0 && hasMore && (
                         <div className="flex justify-center py-2 text-xs text-muted-foreground">
                             {t("chatWindow.loadingOld")}
                         </div>
@@ -216,6 +227,14 @@ const ChatWindow = ({
                         const sameSenderPrev = !m.dividerText && canGroupWith(previousMessage);
                         const sameSenderNext = !nextMessage?.dividerText && canGroupWith(nextMessage);
                         const showSeenAvatar = isLastMessage && m.mine && seenCount > 0;
+                        const showSentStatus =
+                            isLastMessage &&
+                            m.mine &&
+                            m.type !== "system" &&
+                            !m.pending &&
+                            !m.failed &&
+                            !m.recalledAt &&
+                            seenCount === 0;
 
                         return (
                             <Fragment key={m.id}>
@@ -241,6 +260,12 @@ const ChatWindow = ({
                                     gifPreviewUrl={gifMedia[m.gifId]?.previewUrl}
                                     gifMediaUrl={gifMedia[m.gifId]?.mediaUrl}
                                 />
+
+                                {showSentStatus && (
+                                    <div className="mt-0.5 pr-2 text-right text-[11px] text-muted-foreground">
+                                        {t("chatWindow.sent")}
+                                    </div>
+                                )}
 
                                 {showSeenAvatar && (
                                     <div className="mt-0.5 flex justify-end pr-2">

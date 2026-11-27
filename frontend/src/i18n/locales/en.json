@@ -193,8 +193,10 @@
     },
     "chatWindow": {
         "selectToStart": "Select a conversation to start",
+        "loadingMessages": "Loading messages...",
         "loadingOld": "Loading older messages...",
         "seen": "Seen",
+        "sent": "Sent",
         "someone": "Someone",
         "retry": "Resend",
         "imageAlt": "Image",
